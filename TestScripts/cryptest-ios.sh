@@ -27,11 +27,13 @@ rm -rf "$TMPDIR/build.log" 2>/dev/null
 PLATFORMS=()
 PLATFORMS+=("iPhoneOS:armv7")
 PLATFORMS+=("iPhoneOS:arm64")
+PLATFORMS+=("AppleTVOS:armv7")
 PLATFORMS+=("AppleTVOS:arm64")
 PLATFORMS+=("WatchOS:armv7")
 PLATFORMS+=("WatchOS:arm64")
 PLATFORMS+=("iPhoneSimulator:i386")
 PLATFORMS+=("iPhoneSimulator:x86_64")
+PLATFORMS+=("AppleTVSimulator:i386")
 PLATFORMS+=("AppleTVSimulator:x86_64")
 PLATFORMS+=("WatchSimulator:i386")
 PLATFORMS+=("WatchSimulator:x86_64")
@@ -52,18 +54,15 @@ do
     echo "====================================================="
     echo "Testing for iOS support of $platform"
 
-    # run in subshell to not keep any envars
-    (
-        # Test if we can set the environment for the platform
-        if ! ./setenv-ios.sh > /dev/null 2>&1;
-        then
-            echo
-            echo "$platform not supported by Xcode"
-            echo "$platform ==> SKIPPED" >> "$TMPDIR/build.log"
+    # Test if we can set the environment for the platform
+    if ! ./setenv-ios.sh > /dev/null 2>&1;
+    then
+        echo
+        echo "$platform not supported by Xcode"
+        echo "$platform ==> SKIPPED" >> "$TMPDIR/build.log"
 
-            continue
-        fi
-    )
+        continue
+    fi
 
     echo
     echo "Building for $platform..."

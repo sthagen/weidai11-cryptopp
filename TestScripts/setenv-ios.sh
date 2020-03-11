@@ -13,9 +13,9 @@
 #####        Some validation        #####
 #########################################
 
-# In the past we could infer arch or cpu from the SDK (and mostly
-# vice-versa). Nowadays we need it set for us because Apple platforms
-# can be either 32-bit or 64-bit.
+# In the past we could mostly infer arch or cpu from the SDK (and mostly
+# vice-versa). Nowadays we need the user to set it for us because Apple
+# platforms have both 32-bit or 64-bit variations.
 
 if [ -z "$IOS_SDK" ]; then
     echo "IOS_SDK is not set. Please set it"
@@ -148,10 +148,6 @@ if [ -n "$(command -v xcodebuild 2>/dev/null)" ]; then
     if [ "$XCODE_VERSION" -le 6 ]; then
         MIN_VER="${MIN_VER//iphonesimulator/iphoneos}"
     fi
-
-    if [ "$XCODE_VERSION" -eq 6 ]; then
-        MIN_VER="${MIN_VER//iphoneos-version-min=6/iphoneos-version-min=5}"
-    fi
 fi
 
 #####################################################################
@@ -191,7 +187,7 @@ fi
 # XCODE_SDK is the SDK name/version being used - adjust the list as appropriate.
 # For example, remove 4.3, 6.2, and 6.1 if they are not installed. We go back to
 # the 1.0 SDKs because Apple WatchOS uses low numbers, like 2.0 and 2.1.
-unset XCODE_SDK
+XCODE_SDK=""
 for i in $(seq -f "%.1f" 30.0 -0.1 1.0)
 do
     if [ -d "$XCODE_DEVELOPER_SDK/Developer/SDKs/$IOS_SDK$i.sdk" ]; then
@@ -260,11 +256,13 @@ if [ ! -e "$XCODE_TOOLCHAIN/$LD" ]; then
     [ "$0" = "${BASH_SOURCE[0]}" ] && exit 1 || return 1
 fi
 
-TOOL_PATH="$XCODE_TOOLCHAIN"
-LENGTH=${#TOOL_PATH}
+#####################################################################
+
+# Add tools to head of path, if not present already
+LENGTH=${#XCODE_TOOLCHAIN}
 SUBSTR=${PATH:0:$LENGTH}
-if [ "$SUBSTR" != "$TOOL_PATH" ]; then
-    export PATH="$TOOL_PATH":"$PATH"
+if [ "$SUBSTR" != "$XCODE_TOOLCHAIN" ]; then
+    export PATH="$XCODE_TOOLCHAIN:$PATH"
 fi
 
 #####################################################################
