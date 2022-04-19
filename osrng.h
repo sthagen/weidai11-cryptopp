@@ -57,7 +57,7 @@ public:
 #endif // USE_MS_CRYPTOAPI or USE_MS_CNGAPI
 
 	/// \brief Retrieves the provider handle
-	/// \returns CryptoAPI provider handle
+	/// \return CryptoAPI provider handle
 	/// \details If USE_MS_CRYPTOAPI is in effect, then CryptAcquireContext()
 	///  acquires then handle and CryptReleaseContext() releases the handle
 	///  upon destruction. If USE_MS_CNGAPI is in effect, then
@@ -140,7 +140,7 @@ protected:
 
 /// OS_GenerateRandomBlock
 /// \brief Generate random array of bytes
-/// \param blocking specifies whther a bobcking or non-blocking generator should be used
+/// \param blocking specifies whether a blocking or non-blocking generator should be used
 /// \param output the byte buffer
 /// \param size the length of the buffer, in bytes
 /// \details OS_GenerateRandomBlock() uses the underlying operating system's
@@ -207,12 +207,12 @@ public:
 
 	/// \brief Reseed an AutoSeededX917RNG
 	/// \param blocking controls seeding with BlockingRng or NonblockingRng
-	/// \param additionalEntropy additional entropy to add to the generator
+	/// \param input additional entropy to add to the generator
 	/// \param length the size of the additional entropy, in bytes
 	/// \details Internally, the generator uses SHA256 to extract the entropy from
 	///  from the seed and then stretch the material for the block cipher's key
 	///  and initialization vector.
-	void Reseed(bool blocking = false, const byte *additionalEntropy = NULLPTR, size_t length = 0);
+	void Reseed(bool blocking = false, const byte *input = NULLPTR, size_t length = 0);
 
 	/// \brief Deterministically reseed an AutoSeededX917RNG for testing
 	/// \param key the key to use for the deterministic reseeding
@@ -245,7 +245,7 @@ void AutoSeededX917RNG<BLOCK_CIPHER>::Reseed(bool blocking, const byte *input, s
 {
 	enum {BlockSize=BLOCK_CIPHER::BLOCKSIZE};
 	enum {KeyLength=BLOCK_CIPHER::DEFAULT_KEYLENGTH};
-	enum {SeedSize=BlockSize + KeyLength};
+	enum {SeedSize=EnumToInt(BlockSize)+EnumToInt(KeyLength)};
 
 	SecByteBlock seed(SeedSize), temp(SeedSize);
 	const byte label[] = "X9.17 key generation";

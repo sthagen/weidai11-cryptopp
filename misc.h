@@ -6,6 +6,8 @@
 #ifndef CRYPTOPP_MISC_H
 #define CRYPTOPP_MISC_H
 
+#include "config.h"
+
 #include "cryptlib.h"
 #include "secblockfwd.h"
 #include "smartptr.h"
@@ -285,10 +287,10 @@ struct NewObject
 /// \tparam T the class or type
 /// \tparam F the object factory for T
 /// \tparam instance an instance counter for the class object
-/// \details This class safely initializes a static object in a multithreaded environment. For C++03
+/// \details This class safely initializes a static object in a multi-threaded environment. For C++03
 ///  and below it will do so without using locks for portability. If two threads call Ref() at the same
 ///  time, they may get back different references, and one object may end up being memory leaked. This
-///  is by design and it avoids a subltle initialization problem ina multithreaded environment with thread
+///  is by design and it avoids a subtle initialization problem in a multi-threaded environment with thread
 ///  local storage on early Windows platforms, like Windows XP and Windows 2003.
 /// \details For C++11 and above, a standard double-checked locking pattern with thread fences
 ///  are used. The locks and fences are standard and do not hinder portability.
@@ -436,7 +438,7 @@ inline size_t PtrByteDiff(const PTR pointer1, const PTR pointer2)
 /// \since Crypto++ 8.0
 inline byte* BytePtr(std::string& str)
 {
-	// Caller wants a writeable pointer
+	// Caller wants a writable pointer
 	CRYPTOPP_ASSERT(str.empty() == false);
 
 	if (str.empty())
@@ -473,6 +475,7 @@ const byte* ConstBytePtr(const SecByteBlock& str);
 /// \brief Size of a string
 /// \param str std::string
 /// \return size of a string
+/// \since Crypto++ 8.3
 inline size_t BytePtrSize(const std::string& str)
 {
 	return str.size();
@@ -481,16 +484,32 @@ inline size_t BytePtrSize(const std::string& str)
 /// \brief Size of a string
 /// \param str SecByteBlock
 /// \return size of a string
+/// \since Crypto++ 8.3
 size_t BytePtrSize(const SecByteBlock& str);
+
+/// \brief Integer value
+/// \details EnumToInt avoids C++20 enum-enum conversion
+///  warnings under GCC and Clang. C++11 and above use a
+///  constexpr function. C++03 and below use a macro due
+///  to [lack of] constexpr-ness in early versions of C++.
+/// \since Crypto++ 8.6
+#if (CRYPTOPP_CXX11_CONSTEXPR)
+template <typename T>
+constexpr int EnumToInt(T v) {
+	return static_cast<int>(v);
+}
+#else
+#  define EnumToInt(v) static_cast<int>(v)
+#endif
 
 #if (!__STDC_WANT_SECURE_LIB__ && !defined(_MEMORY_S_DEFINED)) || defined(CRYPTOPP_WANT_SECURE_LIB)
 
 /// \brief Bounds checking replacement for memcpy()
-/// \param dest pointer to the desination memory block
-/// \param sizeInBytes size of the desination memory block, in bytes
+/// \param dest pointer to the destination memory block
+/// \param sizeInBytes size of the destination memory block, in bytes
 /// \param src pointer to the source memory block
 /// \param count the number of bytes to copy
-/// \throws InvalidArgument
+/// \throw InvalidArgument
 /// \details ISO/IEC TR-24772 provides bounds checking interfaces for potentially
 ///  unsafe functions like memcpy(), strcpy() and memmove(). However,
 ///  not all standard libraries provides them, like Glibc. The library's
@@ -511,7 +530,7 @@ inline void memcpy_s(void *dest, size_t sizeInBytes, const void *src, size_t cou
 	CRYPTOPP_ASSERT(dest != NULLPTR); CRYPTOPP_ASSERT(src != NULLPTR);
 	// Restricted pointers. We want to check ranges, but it is not clear how to do it.
 	CRYPTOPP_ASSERT(src != dest);
-	// Destination buffer must be large enough to satsify request
+	// Destination buffer must be large enough to satisfy request
 	CRYPTOPP_ASSERT(sizeInBytes >= count);
 
 	if (count > sizeInBytes)
@@ -532,11 +551,11 @@ inline void memcpy_s(void *dest, size_t sizeInBytes, const void *src, size_t cou
 }
 
 /// \brief Bounds checking replacement for memmove()
-/// \param dest pointer to the desination memory block
-/// \param sizeInBytes size of the desination memory block, in bytes
+/// \param dest pointer to the destination memory block
+/// \param sizeInBytes size of the destination memory block, in bytes
 /// \param src pointer to the source memory block
 /// \param count the number of bytes to copy
-/// \throws InvalidArgument
+/// \throw InvalidArgument
 /// \details ISO/IEC TR-24772 provides bounds checking interfaces for potentially
 ///  unsafe functions like memcpy(), strcpy() and memmove(). However,
 ///  not all standard libraries provides them, like Glibc. The library's
@@ -555,7 +574,7 @@ inline void memmove_s(void *dest, size_t sizeInBytes, const void *src, size_t co
 
 	// Pointers must be valid; otherwise undefined behavior
 	CRYPTOPP_ASSERT(dest != NULLPTR); CRYPTOPP_ASSERT(src != NULLPTR);
-	// Destination buffer must be large enough to satsify request
+	// Destination buffer must be large enough to satisfy request
 	CRYPTOPP_ASSERT(sizeInBytes >= count);
 
 	if (count > sizeInBytes)
@@ -576,7 +595,8 @@ inline void memmove_s(void *dest, size_t sizeInBytes, const void *src, size_t co
 }
 
 #if __BORLANDC__ >= 0x620
-// C++Builder 2010 workaround: can't use std::memcpy_s because it doesn't allow 0 lengths
+// C++Builder 2010 workaround: can't use std::memcpy_s
+// because it doesn't allow 0 lengths
 # define memcpy_s CryptoPP::memcpy_s
 # define memmove_s CryptoPP::memmove_s
 #endif
@@ -613,11 +633,11 @@ inline void vec_swap(T& a, T& b)
 /// \details Internally the function calls memset with the value <tt>val</tt>.
 ///  memset_z can be used to initialize a freshly allocated memory block.
 ///  To zeroize a memory block on destruction use <tt>SecureWipeBuffer</tt>.
-/// \returns the pointer to the memory block
+/// \return the pointer to the memory block
 /// \sa SecureWipeBuffer
 inline void * memset_z(void *ptr, int val, size_t num)
 {
-// avoid extranous warning on GCC 4.3.2 Ubuntu 8.10
+// avoid extraneous warning on GCC 4.3.2 Ubuntu 8.10
 #if CRYPTOPP_GCC_VERSION >= 30001 || CRYPTOPP_LLVM_CLANG_VERSION >= 20800 || \
     CRYPTOPP_APPLE_CLANG_VERSION >= 30000
 	if (__builtin_constant_p(num) && num==0)
@@ -630,7 +650,7 @@ inline void * memset_z(void *ptr, int val, size_t num)
 /// \tparam T class or type
 /// \param a the first value
 /// \param b the second value
-/// \returns the minimum value based on a comparison of <tt>b \< a</tt> using <tt>operator\<</tt>
+/// \return the minimum value based on a comparison of <tt>b \< a</tt> using <tt>operator\<</tt>
 /// \details STDMIN was provided because the library could not easily use std::min or std::max in Windows or Cygwin 1.1.0
 template <class T> inline const T& STDMIN(const T& a, const T& b)
 {
@@ -641,7 +661,7 @@ template <class T> inline const T& STDMIN(const T& a, const T& b)
 /// \tparam T class or type
 /// \param a the first value
 /// \param b the second value
-/// \returns the minimum value based on a comparison of <tt>a \< b</tt> using <tt>operator\<</tt>
+/// \return the minimum value based on a comparison of <tt>a \< b</tt> using <tt>operator\<</tt>
 /// \details STDMAX was provided because the library could not easily use std::min or std::max in Windows or Cygwin 1.1.0
 template <class T> inline const T& STDMAX(const T& a, const T& b)
 {
@@ -664,12 +684,12 @@ template <class T> inline const T& STDMAX(const T& a, const T& b)
 # endif
 #endif
 
-/// \brief Safe comparison of values that could be neagtive and incorrectly promoted
+/// \brief Safe comparison of values that could be negative and incorrectly promoted
 /// \tparam T1 class or type
 /// \tparam T2 class or type
 /// \param a the first value
 /// \param b the second value
-/// \returns the minimum value based on a comparison a and b using <tt>operator&lt;</tt>.
+/// \return the minimum value based on a comparison a and b using <tt>operator&lt;</tt>.
 /// \details The comparison <tt>b \< a</tt> is performed and the value returned is a's type T1.
 template <class T1, class T2> inline const T1 UnsignedMin(const T1& a, const T2& b)
 {
@@ -685,7 +705,7 @@ template <class T1, class T2> inline const T1 UnsignedMin(const T1& a, const T2&
 /// \tparam T2 class or type
 /// \param from the first value
 /// \param to the second value
-/// \returns true if its safe to convert from into to, false otherwise.
+/// \return true if its safe to convert from into to, false otherwise.
 template <class T1, class T2>
 inline bool SafeConvert(T1 from, T2 &to)
 {
@@ -699,7 +719,7 @@ inline bool SafeConvert(T1 from, T2 &to)
 /// \tparam T class or type
 /// \param value the value to convert
 /// \param base the base to use during the conversion
-/// \returns the string representation of value in base.
+/// \return the string representation of value in base.
 template <class T>
 std::string IntToString(T value, unsigned int base = 10)
 {
@@ -733,16 +753,16 @@ std::string IntToString(T value, unsigned int base = 10)
 /// \brief Converts an unsigned value to a string
 /// \param value the value to convert
 /// \param base the base to use during the conversion
-/// \returns the string representation of value in base.
+/// \return the string representation of value in base.
 /// \details this template function specialization was added to suppress
-///   Coverity findings on IntToString() with unsigned types.
+///  Coverity findings on IntToString() with unsigned types.
 template <> CRYPTOPP_DLL
 std::string IntToString<word64>(word64 value, unsigned int base);
 
 /// \brief Converts an Integer to a string
 /// \param value the Integer to convert
 /// \param base the base to use during the conversion
-/// \returns the string representation of value in base.
+/// \return the string representation of value in base.
 /// \details This is a template specialization of IntToString(). Use it
 ///  like IntToString():
 /// <pre>
@@ -782,7 +802,7 @@ std::string IntToString<Integer>(Integer value, unsigned int base);
 /// \brief Returns the parity of a value
 /// \tparam T class or type
 /// \param value the value to provide the parity
-/// \returns 1 if the number 1-bits in the value is odd, 0 otherwise
+/// \return 1 if the number 1-bits in the value is odd, 0 otherwise
 template <class T>
 unsigned int Parity(T value)
 {
@@ -794,7 +814,7 @@ unsigned int Parity(T value)
 /// \brief Returns the number of 8-bit bytes or octets required for a value
 /// \tparam T class or type
 /// \param value the value to test
-/// \returns the minimum number of 8-bit bytes or octets required to represent a value
+/// \return the minimum number of 8-bit bytes or octets required to represent a value
 template <class T>
 unsigned int BytePrecision(const T &value)
 {
@@ -817,7 +837,7 @@ unsigned int BytePrecision(const T &value)
 /// \brief Returns the number of bits required for a value
 /// \tparam T class or type
 /// \param value the value to test
-/// \returns the maximum number of bits required to represent a value.
+/// \return the maximum number of bits required to represent a value.
 template <class T>
 unsigned int BitPrecision(const T &value)
 {
@@ -840,7 +860,7 @@ unsigned int BitPrecision(const T &value)
 
 /// Determines the number of trailing 0-bits in a value
 /// \param v the 32-bit value to test
-/// \returns the number of trailing 0-bits in v, starting at the least significant bit position
+/// \return the number of trailing 0-bits in v, starting at the least significant bit position
 /// \details TrailingZeros returns the number of trailing 0-bits in v, starting at the least
 ///  significant bit position. The return value is undefined if there are no 1-bits set in the value v.
 /// \note The function does not return 0 if no 1-bits are set because 0 collides with a 1-bit at the 0-th position.
@@ -871,7 +891,7 @@ inline unsigned int TrailingZeros(word32 v)
 
 /// Determines the number of trailing 0-bits in a value
 /// \param v the 64-bit value to test
-/// \returns the number of trailing 0-bits in v, starting at the least significant bit position
+/// \return the number of trailing 0-bits in v, starting at the least significant bit position
 /// \details TrailingZeros returns the number of trailing 0-bits in v, starting at the least
 ///  significant bit position. The return value is undefined if there are no 1-bits set in the value v.
 /// \note The function does not return 0 if no 1-bits are set because 0 collides with a 1-bit at the 0-th position.
@@ -898,7 +918,7 @@ inline unsigned int TrailingZeros(word64 v)
 /// \tparam T class or type
 /// \param value the value to truncate or mask
 /// \param bits the number of bits to truncate or mask
-/// \returns the value truncated to the specified number of bits, starting at the least
+/// \return the value truncated to the specified number of bits, starting at the least
 ///  significant bit position
 /// \details This function masks the low-order bits of value and returns the result. The
 ///  mask is created with <tt>(1 << bits) - 1</tt>.
@@ -913,7 +933,7 @@ inline T Crop(T value, size_t bits)
 
 /// \brief Returns the number of 8-bit bytes or octets required for the specified number of bits
 /// \param bitCount the number of bits
-/// \returns the minimum number of 8-bit bytes or octets required by bitCount
+/// \return the minimum number of 8-bit bytes or octets required by bitCount
 /// \details BitsToBytes is effectively a ceiling function based on 8-bit bytes.
 inline size_t BitsToBytes(size_t bitCount)
 {
@@ -922,7 +942,7 @@ inline size_t BitsToBytes(size_t bitCount)
 
 /// \brief Returns the number of words required for the specified number of bytes
 /// \param byteCount the number of bytes
-/// \returns the minimum number of words required by byteCount
+/// \return the minimum number of words required by byteCount
 /// \details BytesToWords is effectively a ceiling function based on <tt>WORD_SIZE</tt>.
 ///  <tt>WORD_SIZE</tt> is defined in config.h
 inline size_t BytesToWords(size_t byteCount)
@@ -932,7 +952,7 @@ inline size_t BytesToWords(size_t byteCount)
 
 /// \brief Returns the number of words required for the specified number of bits
 /// \param bitCount the number of bits
-/// \returns the minimum number of words required by bitCount
+/// \return the minimum number of words required by bitCount
 /// \details BitsToWords is effectively a ceiling function based on <tt>WORD_BITS</tt>.
 ///  <tt>WORD_BITS</tt> is defined in config.h
 inline size_t BitsToWords(size_t bitCount)
@@ -942,7 +962,7 @@ inline size_t BitsToWords(size_t bitCount)
 
 /// \brief Returns the number of double words required for the specified number of bits
 /// \param bitCount the number of bits
-/// \returns the minimum number of double words required by bitCount
+/// \return the minimum number of double words required by bitCount
 /// \details BitsToDwords is effectively a ceiling function based on <tt>2*WORD_BITS</tt>.
 ///  <tt>WORD_BITS</tt> is defined in config.h
 inline size_t BitsToDwords(size_t bitCount)
@@ -972,7 +992,7 @@ CRYPTOPP_DLL void CRYPTOPP_API xorbuf(byte *output, const byte *input, const byt
 /// \param buf2 the second buffer
 /// \param count the size of the buffers, in bytes
 /// \details VerifyBufsEqual performs an XOR of the elements in two equally sized
-///  buffers and retruns a result based on the XOR operation. A count of 0 returns
+///  buffers and returns a result based on the XOR operation. A count of 0 returns
 ///  true because two empty buffers are considered equal.
 /// \details The function is near constant-time because CPU micro-code timings could
 ///  affect the "constant-ness". Calling code is responsible for mitigating timing
@@ -982,7 +1002,7 @@ CRYPTOPP_DLL bool CRYPTOPP_API VerifyBufsEqual(const byte *buf1, const byte *buf
 
 /// \brief Tests whether a value is a power of 2
 /// \param value the value to test
-/// \returns true if value is a power of 2, false otherwise
+/// \return true if value is a power of 2, false otherwise
 /// \details The function creates a mask of <tt>value - 1</tt> and returns the result
 ///  of an AND operation compared to 0. If value is 0 or less than 0, then the function
 ///  returns false.
@@ -1010,7 +1030,7 @@ inline bool IsPowerOf2<word64>(const word64 &value)
 
 /// \brief Provide the minimum value for a type
 /// \tparam T type of class
-/// \returns the minimum value of the type or class
+/// \return the minimum value of the type or class
 /// \details NumericLimitsMin() was introduced for Clang at <A
 ///  HREF="http://github.com/weidai11/cryptopp/issues/364">Issue 364,
 ///  Apple Clang 6.0 and numeric_limits<word128>::max() returns 0</A>.
@@ -1028,7 +1048,7 @@ inline T NumericLimitsMin()
 
 /// \brief Provide the maximum value for a type
 /// \tparam T type of class
-/// \returns the maximum value of the type or class
+/// \return the maximum value of the type or class
 /// \details NumericLimitsMax() was introduced for Clang at <A
 ///  HREF="http://github.com/weidai11/cryptopp/issues/364">Issue 364,
 ///  Apple Clang 6.0 and numeric_limits<word128>::max() returns 0</A>.
@@ -1064,7 +1084,7 @@ inline word128 NumericLimitsMax()
 /// \tparam T2 class or type
 /// \param a the minuend
 /// \param b the subtrahend
-/// \returns the difference produced by the saturating subtract
+/// \return the difference produced by the saturating subtract
 /// \details Saturating arithmetic restricts results to a fixed range. Results that are
 ///  less than 0 are clamped at 0.
 /// \details Use of saturating arithmetic in places can be advantageous because it can
@@ -1081,7 +1101,7 @@ inline T1 SaturatingSubtract(const T1 &a, const T2 &b)
 /// \tparam T2 class or type
 /// \param a the minuend
 /// \param b the subtrahend
-/// \returns the difference produced by the saturating subtract
+/// \return the difference produced by the saturating subtract
 /// \details Saturating arithmetic restricts results to a fixed range. Results that are
 ///  less than 1 are clamped at 1.
 /// \details Use of saturating arithmetic in places can be advantageous because it can
@@ -1098,26 +1118,27 @@ inline T1 SaturatingSubtract1(const T1 &a, const T2 &b)
 /// \tparam T2 class or type
 /// \param a the first value
 /// \param b the second value
-/// \returns ModPowerOf2() returns <tt>a & (b-1)</tt>. <tt>b</tt> must be a power of 2.
+/// \return ModPowerOf2() returns <tt>a & (b-1)</tt>. <tt>b</tt> must be a power of 2.
 ///  Use IsPowerOf2() to determine if <tt>b</tt> is a suitable candidate.
 /// \sa IsPowerOf2
 template <class T1, class T2>
 inline T2 ModPowerOf2(const T1 &a, const T2 &b)
 {
 	CRYPTOPP_ASSERT(IsPowerOf2(b));
-	// Coverity finding CID 170383 Overflowed return value (INTEGER_OVERFLOW)
-	return T2(a) & SaturatingSubtract(b,1U);
+    // Coverity finding CID 170383 Overflowed return value (INTEGER_OVERFLOW)
+    // Visual Studio and /RTCc warning, https://docs.microsoft.com/en-us/cpp/build/reference/rtc-run-time-error-checks
+	return T2(a & SaturatingSubtract(b,1U));
 }
 
 /// \brief Rounds a value down to a multiple of a second value
 /// \tparam T1 class or type
 /// \tparam T2 class or type
 /// \param n the value to reduce
-/// \param m the value to reduce \n to to a multiple
-/// \returns the possibly unmodified value \n
+/// \param m the value to reduce <tt>n</tt> to a multiple
+/// \return the possibly unmodified value \n
 /// \details RoundDownToMultipleOf is effectively a floor function based on m. The function returns
 ///  the value <tt>n - n\%m</tt>. If n is a multiple of m, then the original value is returned.
-/// \note <tt>T1</tt> and <tt>T2</tt> should be usigned arithmetic types. If <tt>T1</tt> or
+/// \note <tt>T1</tt> and <tt>T2</tt> should be unsigned arithmetic types. If <tt>T1</tt> or
 ///  <tt>T2</tt> is signed, then the value should be non-negative. The library asserts in
 ///  debug builds when practical, but allows you to perform the operation in release builds.
 template <class T1, class T2>
@@ -1142,12 +1163,12 @@ inline T1 RoundDownToMultipleOf(const T1 &n, const T2 &m)
 /// \tparam T1 class or type
 /// \tparam T2 class or type
 /// \param n the value to reduce
-/// \param m the value to reduce \n to to a multiple
-/// \returns the possibly unmodified value \n
+/// \param m the value to reduce <tt>n</tt> to a multiple
+/// \return the possibly unmodified value \n
 /// \details RoundUpToMultipleOf is effectively a ceiling function based on m. The function
 ///  returns the value <tt>n + n\%m</tt>. If n is a multiple of m, then the original value is
 ///  returned. If the value n would overflow, then an InvalidArgument exception is thrown.
-/// \note <tt>T1</tt> and <tt>T2</tt> should be usigned arithmetic types. If <tt>T1</tt> or
+/// \note <tt>T1</tt> and <tt>T2</tt> should be unsigned arithmetic types. If <tt>T1</tt> or
 ///  <tt>T2</tt> is signed, then the value should be non-negative. The library asserts in
 ///  debug builds when practical, but allows you to perform the operation in release builds.
 template <class T1, class T2>
@@ -1169,13 +1190,12 @@ inline T1 RoundUpToMultipleOf(const T1 &n, const T2 &m)
 
 /// \brief Returns the minimum alignment requirements of a type
 /// \tparam T class or type
-/// \returns the minimum alignment requirements of <tt>T</tt>, in bytes
-/// \details Internally the function calls C++11's <tt>alignof</tt> if available. If not
-///  available, then the function uses compiler specific extensions such as
-///  <tt>__alignof</tt> and <tt>_alignof_</tt>. If an extension is not available, then
-///  the function uses <tt>__BIGGEST_ALIGNMENT__</tt> if <tt>__BIGGEST_ALIGNMENT__</tt>
-///  is smaller than <tt>sizeof(T)</tt>. <tt>sizeof(T)</tt> is used if all others are
-///  not available.
+/// \return the minimum alignment requirements of <tt>T</tt>, in bytes
+/// \details Internally the function calls C++11's <tt>alignof</tt> if
+///  available. If not available, then the function uses compiler
+///  specific extensions such as <tt>__alignof</tt> and <tt>_alignof_</tt>.
+///  If an extension is not available, then the function uses
+///  <tt>sizeof(T)</tt>.
 template <class T>
 inline unsigned int GetAlignmentOf()
 {
@@ -1199,7 +1219,7 @@ inline unsigned int GetAlignmentOf()
 /// \brief Determines whether ptr is aligned to a minimum value
 /// \param ptr the pointer being checked for alignment
 /// \param alignment the alignment value to test the pointer against
-/// \returns true if <tt>ptr</tt> is aligned on at least <tt>alignment</tt>
+/// \return true if <tt>ptr</tt> is aligned on at least <tt>alignment</tt>
 ///  boundary, false otherwise
 /// \details Internally the function tests whether alignment is 1. If so,
 ///  the function returns true. If not, then the function effectively
@@ -1213,7 +1233,7 @@ inline bool IsAlignedOn(const void *ptr, unsigned int alignment)
 /// \brief Determines whether ptr is minimally aligned
 /// \tparam T class or type
 /// \param ptr the pointer to check for alignment
-/// \returns true if <tt>ptr</tt> is aligned to at least <tt>T</tt>
+/// \return true if <tt>ptr</tt> is aligned to at least <tt>T</tt>
 ///  boundary, false otherwise
 /// \details Internally the function calls IsAlignedOn with a second
 ///  parameter of GetAlignmentOf<T>.
@@ -1232,7 +1252,7 @@ typedef BigEndian NativeByteOrder;
 #endif
 
 /// \brief Returns NativeByteOrder as an enumerated ByteOrder value
-/// \returns LittleEndian if the native byte order is little-endian,
+/// \return LittleEndian if the native byte order is little-endian,
 ///  and BigEndian if the native byte order is big-endian
 /// \details NativeByteOrder is a typedef depending on the platform.
 ///  If CRYPTOPP_LITTLE_ENDIAN is set in config.h, then
@@ -1248,7 +1268,7 @@ inline ByteOrder GetNativeByteOrder()
 
 /// \brief Determines whether order follows native byte ordering
 /// \param order the ordering being tested against native byte ordering
-/// \returns true if order follows native byte ordering, false otherwise
+/// \return true if order follows native byte ordering, false otherwise
 inline bool NativeByteOrderIs(ByteOrder order)
 {
 	return order == GetNativeByteOrder();
@@ -1257,11 +1277,11 @@ inline bool NativeByteOrderIs(ByteOrder order)
 /// \brief Returns the direction the cipher is being operated
 /// \tparam T class or type
 /// \param obj the cipher object being queried
-/// \returns ENCRYPTION if the cipher obj is being operated in its forward direction,
+/// \return ENCRYPTION if the cipher obj is being operated in its forward direction,
 ///  DECRYPTION otherwise
 /// \details A cipher can be operated in a "forward" direction (encryption) or a "reverse"
 ///  direction (decryption). The operations do not have to be symmetric, meaning a second
-///  application of the transformation does not necessariy return the original message.
+///  application of the transformation does not necessarily return the original message.
 ///  That is, <tt>E(D(m))</tt> may not equal <tt>E(E(m))</tt>; and <tt>D(E(m))</tt> may not
 ///  equal <tt>D(D(m))</tt>.
 template <class T>
@@ -1316,7 +1336,7 @@ inline void IncrementCounterByOne(byte *output, const byte *input, unsigned int 
 	}
 }
 
-/// \brief Performs a branchless swap of values a and b if condition c is true
+/// \brief Performs a branch-less swap of values a and b if condition c is true
 /// \tparam T class or type
 /// \param c the condition to perform the swap
 /// \param a the first value
@@ -1329,7 +1349,7 @@ inline void ConditionalSwap(bool c, T &a, T &b)
 	b ^= t;
 }
 
-/// \brief Performs a branchless swap of pointers a and b if condition c is true
+/// \brief Performs a branch-less swap of pointers a and b if condition c is true
 /// \tparam T class or type
 /// \param c the condition to perform the swap
 /// \param a the first pointer
@@ -1483,7 +1503,7 @@ inline void SecureWipeArray(T *buf, size_t n)
 /// \brief Converts a wide character C-string to a multibyte string
 /// \param str C-string consisting of wide characters
 /// \param throwOnError flag indicating the function should throw on error
-/// \returns str converted to a multibyte string or an empty string.
+/// \return str converted to a multibyte string or an empty string.
 /// \details StringNarrow() converts a wide string to a narrow string using C++ std::wcstombs() under
 ///  the executing thread's locale. A locale must be set before using this function, and it can be
 ///  set with std::setlocale() if needed. Upon success, the converted string is returned.
@@ -1497,7 +1517,7 @@ std::string StringNarrow(const wchar_t *str, bool throwOnError = true);
 /// \brief Converts a multibyte C-string to a wide character string
 /// \param str C-string consisting of wide characters
 /// \param throwOnError flag indicating the function should throw on error
-/// \returns str converted to a multibyte string or an empty string.
+/// \return str converted to a multibyte string or an empty string.
 /// \details StringWiden() converts a narrow string to a wide string using C++ std::mbstowcs() under
 ///  the executing thread's locale. A locale must be set before using this function, and it can be
 ///  set with std::setlocale() if needed. Upon success, the converted string is returned.
@@ -2070,6 +2090,20 @@ inline word64 ByteReverse(word64 value)
 #endif
 }
 
+#if defined(CRYPTOPP_WORD128_AVAILABLE)
+/// \brief Reverses bytes in a 128-bit value
+/// \param value the 128-bit value to reverse
+/// \details ByteReverse calls bswap if available. Otherwise the function uses
+///  a combination of rotates on the word128.
+/// \note word128 is available on some 64-bit platforms when the compiler supports it.
+/// \since Crypto++ 8.7
+inline word128 ByteReverse(word128 value)
+{
+	// TODO: speed this up
+	return (word128(ByteReverse(word64(value))) << 64) | ByteReverse(word64(value>>64));
+}
+#endif
+
 /// \brief Reverses bits in a 8-bit value
 /// \param value the 8-bit value to reverse
 /// \details BitReverse performs a combination of shifts on the byte.
@@ -2139,6 +2173,8 @@ inline word64 BitReverse(word64 value)
 ///  Internally the size of T is checked, and then value is cast to a byte,
 ///  word16, word32 or word64. After the cast, the appropriate BitReverse
 ///  overload is called.
+/// \note word128 is available on some 64-bit platforms when the compiler supports it.
+/// \since Crypto++ 1.0, word128 since Crypto++ 8.7
 template <class T>
 inline T BitReverse(T value)
 {
@@ -2150,6 +2186,10 @@ inline T BitReverse(T value)
 		return (T)BitReverse((word32)value);
 	else if (sizeof(T) == 8)
 		return (T)BitReverse((word64)value);
+#if defined(CRYPTOPP_WORD128_AVAILABLE)
+	else if (sizeof(T) == 16)
+		return (T)BitReverse((word128)value);
+#endif
 	else
 	{
 		CRYPTOPP_ASSERT(0);
@@ -2194,12 +2234,12 @@ inline T ConditionalByteReverse(ByteOrder order, T value)
 ///
 /// cout << "V1: ";
 /// for(unsigned int i = 0; i < v1.size(); i++)
-///  cout << std::hex << v1[i] << " ";
+///   cout << std::hex << v1[i] << " ";
 /// cout << endl;
 ///
 /// cout << "V2: ";
 /// for(unsigned int i = 0; i < v2.size(); i++)
-///  cout << std::hex << v2[i] << " ";
+///   cout << std::hex << v2[i] << " ";
 /// cout << endl;</pre>
 /// The program above results in the following output.
 /// <pre>V1: 00000001 00000002 00000003 00000004
@@ -2224,7 +2264,7 @@ void ByteReverse(T *out, const T *in, size_t byteCount)
 /// \param out the output array of elements
 /// \param in the input array of elements
 /// \param byteCount the byte count of the arrays
-/// \details Internally, ByteReverse visits each element in the in array
+/// \details ConditionalByteReverse visits each element in the in array
 ///  calls ByteReverse on it depending on the desired endianness, and writes the result to out.
 /// \details ByteReverse does not process tail byes, or bytes that are
 ///  not part of a full element. If T is int (and int is 4 bytes), then
@@ -2240,6 +2280,13 @@ inline void ConditionalByteReverse(ByteOrder order, T *out, const T *in, size_t 
 		memcpy_s(out, byteCount, in, byteCount);
 }
 
+/// \brief Copy bytes in a buffer to an array of elements in big-endian order
+/// \tparam T the class or type
+/// \param order the ByteOrder of the data
+/// \param out the output array of elements
+/// \param outlen the byte count of the array
+/// \param in the input array of elements
+/// \param inlen the byte count of the array
 template <class T>
 inline void GetUserKey(ByteOrder order, T *out, size_t outlen, const byte *in, size_t inlen)
 {
@@ -2250,28 +2297,59 @@ inline void GetUserKey(ByteOrder order, T *out, size_t outlen, const byte *in, s
 	ConditionalByteReverse(order, out, out, RoundUpToMultipleOf(inlen, U));
 }
 
-inline byte UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, const byte *)
+/// \brief Retrieve a byte from an unaligned buffer
+/// \param order the ByteOrder of the data
+/// \param block an unaligned buffer
+/// \param unused dummy parameter
+/// \return byte value
+/// \details UnalignedGetWordNonTemplate accesses an unaligned buffer and returns a byte value.
+/// \since Crypto++ 1.0
+inline byte UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, const byte *unused)
 {
-	CRYPTOPP_UNUSED(order);
+	CRYPTOPP_UNUSED(order); CRYPTOPP_UNUSED(unused);
 	return block[0];
 }
 
-inline word16 UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, const word16 *)
+/// \brief Retrieve a word16 from an unaligned buffer
+/// \param order the ByteOrder of the data
+/// \param block an unaligned buffer
+/// \param unused dummy parameter
+/// \return byte value
+/// \details UnalignedGetWordNonTemplate accesses an unaligned buffer and returns a word16 value.
+/// \since Crypto++ 1.0
+inline word16 UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, const word16 *unused)
 {
+	CRYPTOPP_UNUSED(unused);
 	return (order == BIG_ENDIAN_ORDER)
 		? block[1] | (block[0] << 8)
 		: block[0] | (block[1] << 8);
 }
 
-inline word32 UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, const word32 *)
+/// \brief Retrieve a word32 from an unaligned buffer
+/// \param order the ByteOrder of the data
+/// \param block an unaligned buffer
+/// \param unused dummy parameter
+/// \return byte value
+/// \details UnalignedGetWordNonTemplate accesses an unaligned buffer and returns a word32 value.
+/// \since Crypto++ 1.0
+inline word32 UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, const word32 *unused)
 {
+	CRYPTOPP_UNUSED(unused);
 	return (order == BIG_ENDIAN_ORDER)
 		? word32(block[3]) | (word32(block[2]) << 8) | (word32(block[1]) << 16) | (word32(block[0]) << 24)
 		: word32(block[0]) | (word32(block[1]) << 8) | (word32(block[2]) << 16) | (word32(block[3]) << 24);
 }
 
-inline word64 UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, const word64 *)
+/// \brief Retrieve a word64 from an unaligned buffer
+/// \param order the ByteOrder of the data
+/// \param block an unaligned buffer
+/// \param unused dummy parameter
+/// \return byte value
+/// \details UnalignedGetWordNonTemplate accesses an unaligned buffer and returns a word64 value.
+/// \since Crypto++ 1.0
+inline word64 UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, const word64 *unused)
 {
+	CRYPTOPP_UNUSED(unused);
 	return (order == BIG_ENDIAN_ORDER)
 		?
 		(word64(block[7]) |
@@ -2293,12 +2371,76 @@ inline word64 UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, co
 		(word64(block[7]) << 56));
 }
 
+#if defined(CRYPTOPP_WORD128_AVAILABLE)
+/// \brief Retrieve a word128 from an unaligned buffer
+/// \param order the ByteOrder of the data
+/// \param block an unaligned buffer
+/// \param unused dummy parameter
+/// \return byte value
+/// \details UnalignedGetWordNonTemplate accesses an unaligned buffer and returns a word128 value.
+/// \note word128 is available on some 64-bit platforms when the compiler supports it.
+/// \since Crypto++ 8.7
+inline word128 UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, const word128 *unused)
+{
+	CRYPTOPP_UNUSED(unused);
+	return (order == BIG_ENDIAN_ORDER)
+		?
+		(word128(block[15]) |
+		(word128(block[14]) <<   8) |
+		(word128(block[13]) <<  16) |
+		(word128(block[12]) <<  24) |
+		(word128(block[11]) <<  32) |
+		(word128(block[10]) <<  40) |
+		(word128(block[ 9]) <<  48) |
+		(word128(block[ 8]) <<  56) |
+		(word128(block[ 7]) <<  64) |
+		(word128(block[ 6]) <<  72) |
+		(word128(block[ 5]) <<  80) |
+		(word128(block[ 4]) <<  88) |
+		(word128(block[ 3]) <<  96) |
+		(word128(block[ 2]) << 104) |
+		(word128(block[ 1]) << 112) |
+		(word128(block[ 0]) << 120))
+		:
+		(word128(block[ 0]) |
+		(word128(block[ 1]) <<   8) |
+		(word128(block[ 2]) <<  16) |
+		(word128(block[ 3]) <<  24) |
+		(word128(block[ 4]) <<  32) |
+		(word128(block[ 5]) <<  40) |
+		(word128(block[ 6]) <<  48) |
+		(word128(block[ 7]) <<  56) |
+		(word128(block[ 8]) <<  64) |
+		(word128(block[ 9]) <<  72) |
+		(word128(block[10]) <<  80) |
+		(word128(block[11]) <<  88) |
+		(word128(block[12]) <<  96) |
+		(word128(block[13]) << 104) |
+		(word128(block[14]) << 112) |
+		(word128(block[15]) << 120));
+}
+#endif
+
+/// \brief Write a byte to an unaligned buffer
+/// \param order the ByteOrder of the data
+/// \param block an unaligned output buffer
+/// \param value byte value
+/// \param xorBlock optional unaligned xor buffer
+/// \details UnalignedbyteNonTemplate writes a byte value to an unaligned buffer.
+/// \since Crypto++ 1.0
 inline void UnalignedbyteNonTemplate(ByteOrder order, byte *block, byte value, const byte *xorBlock)
 {
 	CRYPTOPP_UNUSED(order);
 	block[0] = static_cast<byte>(xorBlock ? (value ^ xorBlock[0]) : value);
 }
 
+/// \brief Write a word16 to an unaligned buffer
+/// \param order the ByteOrder of the data
+/// \param block an unaligned output buffer
+/// \param value word16 value
+/// \param xorBlock optional unaligned xor buffer
+/// \details UnalignedbyteNonTemplate writes a word16 value to an unaligned buffer.
+/// \since Crypto++ 1.0
 inline void UnalignedbyteNonTemplate(ByteOrder order, byte *block, word16 value, const byte *xorBlock)
 {
 	if (order == BIG_ENDIAN_ORDER)
@@ -2329,6 +2471,13 @@ inline void UnalignedbyteNonTemplate(ByteOrder order, byte *block, word16 value,
 	}
 }
 
+/// \brief Write a word32 to an unaligned buffer
+/// \param order the ByteOrder of the data
+/// \param block an unaligned output buffer
+/// \param value word32 value
+/// \param xorBlock optional unaligned xor buffer
+/// \details UnalignedbyteNonTemplate writes a word32 value to an unaligned buffer.
+/// \since Crypto++ 1.0
 inline void UnalignedbyteNonTemplate(ByteOrder order, byte *block, word32 value, const byte *xorBlock)
 {
 	if (order == BIG_ENDIAN_ORDER)
@@ -2367,6 +2516,13 @@ inline void UnalignedbyteNonTemplate(ByteOrder order, byte *block, word32 value,
 	}
 }
 
+/// \brief Write a word64 to an unaligned buffer
+/// \param order the ByteOrder of the data
+/// \param block an unaligned output buffer
+/// \param value word64 value
+/// \param xorBlock optional unaligned xor buffer
+/// \details UnalignedbyteNonTemplate writes a word64 value to an unaligned buffer.
+/// \since Crypto++ 1.0
 inline void UnalignedbyteNonTemplate(ByteOrder order, byte *block, word64 value, const byte *xorBlock)
 {
 	if (order == BIG_ENDIAN_ORDER)
@@ -2421,12 +2577,112 @@ inline void UnalignedbyteNonTemplate(ByteOrder order, byte *block, word64 value,
 	}
 }
 
+#if defined(CRYPTOPP_WORD128_AVAILABLE)
+/// \brief Write a word128 to an unaligned buffer
+/// \param order the ByteOrder of the data
+/// \param block an unaligned output buffer
+/// \param value word128 value
+/// \param xorBlock optional unaligned xor buffer
+/// \details UnalignedbyteNonTemplate writes a word128 value to an unaligned buffer.
+/// \note word128 is available on some 64-bit platforms when the compiler supports it.
+/// \since Crypto++ 8.7
+inline void UnalignedbyteNonTemplate(ByteOrder order, byte *block, word128 value, const byte *xorBlock)
+{
+	if (order == BIG_ENDIAN_ORDER)
+	{
+		if (xorBlock)
+		{
+			block[0] = xorBlock[0] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 15);
+			block[1] = xorBlock[1] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 14);
+			block[2] = xorBlock[2] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 13);
+			block[3] = xorBlock[3] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 12);
+			block[4] = xorBlock[4] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 11);
+			block[5] = xorBlock[5] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 10);
+			block[6] = xorBlock[6] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value,  9);
+			block[7] = xorBlock[7] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value,  8);
+
+			block[ 8] = xorBlock[ 8] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 7);
+			block[ 9] = xorBlock[ 9] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 6);
+			block[10] = xorBlock[10] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 5);
+			block[11] = xorBlock[11] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 4);
+			block[12] = xorBlock[12] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 3);
+			block[13] = xorBlock[13] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 2);
+			block[14] = xorBlock[14] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 1);
+			block[15] = xorBlock[15] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 0);
+		}
+		else
+		{
+			block[0] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 15);
+			block[1] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 14);
+			block[2] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 13);
+			block[3] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 12);
+			block[4] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 11);
+			block[5] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 10);
+			block[6] = CRYPTOPP_GET_BYTE_AS_BYTE(value,  9);
+			block[7] = CRYPTOPP_GET_BYTE_AS_BYTE(value,  8);
+
+			block[ 8] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 7);
+			block[ 9] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 6);
+			block[10] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 5);
+			block[11] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 4);
+			block[12] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 3);
+			block[13] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 2);
+			block[14] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 1);
+			block[15] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 0);
+		}
+	}
+	else
+	{
+		if (xorBlock)
+		{
+			block[0] = xorBlock[0] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 0);
+			block[1] = xorBlock[1] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 1);
+			block[2] = xorBlock[2] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 2);
+			block[3] = xorBlock[3] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 3);
+			block[4] = xorBlock[4] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 4);
+			block[5] = xorBlock[5] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 5);
+			block[6] = xorBlock[6] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 6);
+			block[7] = xorBlock[7] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 7);
+
+			block[ 8] = xorBlock[ 8] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value,  8);
+			block[ 9] = xorBlock[ 9] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value,  9);
+			block[10] = xorBlock[10] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 10);
+			block[11] = xorBlock[11] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 11);
+			block[12] = xorBlock[12] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 12);
+			block[13] = xorBlock[13] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 13);
+			block[14] = xorBlock[14] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 14);
+			block[15] = xorBlock[15] ^ CRYPTOPP_GET_BYTE_AS_BYTE(value, 15);
+		}
+		else
+		{
+			block[0] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 0);
+			block[1] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 1);
+			block[2] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 2);
+			block[3] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 3);
+			block[4] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 4);
+			block[5] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 5);
+			block[6] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 6);
+			block[7] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 7);
+
+			block[ 8] = CRYPTOPP_GET_BYTE_AS_BYTE(value,  8);
+			block[ 9] = CRYPTOPP_GET_BYTE_AS_BYTE(value,  9);
+			block[10] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 10);
+			block[11] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 11);
+			block[12] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 12);
+			block[13] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 13);
+			block[14] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 14);
+			block[15] = CRYPTOPP_GET_BYTE_AS_BYTE(value, 15);
+		}
+	}
+}
+#endif
+
 /// \brief Access a block of memory
 /// \tparam T class or type
 /// \param assumeAligned flag indicating alignment
 /// \param order the ByteOrder of the data
 /// \param block the byte buffer to be processed
-/// \returns the word in the specified byte order
+/// \return the word in the specified byte order
 /// \details GetWord() provides alternate read access to a block of memory. The flag assumeAligned indicates
 ///  if the memory block is aligned for class or type T. The enumeration ByteOrder is BIG_ENDIAN_ORDER or
 ///  LITTLE_ENDIAN_ORDER.
@@ -2517,7 +2773,7 @@ public:
 	/// \brief Access a block of memory
 	/// \tparam U class or type
 	/// \param x the value to read
-	/// \returns pointer to the remainder of the block after reading x
+	/// \return pointer to the remainder of the block after reading x
 	template <class U>
 	inline GetBlock<T, B, A> & operator()(U &x)
 	{
@@ -2559,7 +2815,7 @@ public:
 	/// \brief Access a block of memory
 	/// \tparam U class or type
 	/// \param x the value to write
-	/// \returns pointer to the remainder of the block after writing x
+	/// \return pointer to the remainder of the block after writing x
 	template <class U>
 	inline PutBlock<T, B, A> & operator()(U x)
 	{
@@ -2595,7 +2851,7 @@ struct BlockGetAndPut
 /// \tparam T class or type
 /// \param value the word to convert
 /// \param order byte order
-/// \returns a string representing the value of the word
+/// \return a string representing the value of the word
 template <class T>
 std::string WordToString(T value, ByteOrder order = BIG_ENDIAN_ORDER)
 {
@@ -2609,7 +2865,7 @@ std::string WordToString(T value, ByteOrder order = BIG_ENDIAN_ORDER)
 /// \tparam T class or type
 /// \param str the string to convert
 /// \param order byte order
-/// \returns a word representing the value of the string
+/// \return a word representing the value of the string
 template <class T>
 T StringToWord(const std::string &str, ByteOrder order = BIG_ENDIAN_ORDER)
 {
@@ -2720,7 +2976,7 @@ inline T SafeLeftShift(T value)
 /// \param first iterator to first element
 /// \param last iterator to last element
 /// \param value the value used as a predicate
-/// \returns iterator to the first element in the range that is not value
+/// \return iterator to the first element in the range that is not value
 template<typename InputIt, typename T>
 inline InputIt FindIfNot(InputIt first, InputIt last, const T &value) {
 #ifdef CRYPTOPP_CXX11_LAMBDA

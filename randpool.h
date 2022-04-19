@@ -59,7 +59,7 @@ private:
 
 /// \brief Randomness Pool based on PGP 2.6.x with MDC
 /// \details If you need the pre-Crypto++ 5.5 generator then use OldRandomPool class. The
-///  OldRandomPool also provides the modern nterface, including <tt>CanIncorporateEntropy</tt>,
+///  OldRandomPool also provides the modern interface, including <tt>CanIncorporateEntropy</tt>,
 ///  <tt>IncorporateEntropy</tt> and <tt>GenerateIntoBufferedTransformation</tt>.
 /// \details You should reseed the generator after a fork() to avoid multiple generators
 ///  with the same internal state.
@@ -70,7 +70,7 @@ private:
 ///  random numbers after state rollback. You should migrate away from OldRandomPool at
 ///  the earliest opportunity.
 /// \sa RandomPool, AutoSeededRandomPool, HKDF, P1363_KDF2, PKCS12_PBKDF, PKCS5_PBKDF2_HMAC
-/// \since Crypto++ 6.0 (PGP 2.6.x style)
+/// \since Crypto++ 6.0
 class CRYPTOPP_DLL OldRandomPool : public RandomNumberGenerator
 {
 public:
@@ -86,6 +86,10 @@ public:
 
 	byte GenerateByte();
 	void GenerateBlock(byte *output, size_t size);
+
+	// GenerateWord32 is overridden and provides Crypto++ 5.4 behavior.
+	// Taken from RandomNumberSource::GenerateWord32 in cryptlib.cpp.
+	word32 GenerateWord32 (word32 min=0, word32 max=0xffffffffUL);
 
 protected:
 	void Stir();

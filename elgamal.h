@@ -142,7 +142,7 @@ struct DL_PublicKey_ElGamal : public BASE
 	virtual ~DL_PublicKey_ElGamal() {}
 
 	/// \brief Retrieves the OID of the algorithm
-	/// \returns OID of the algorithm
+	/// \return OID of the algorithm
 	/// \details DL_PrivateKey_ElGamal provides an override for GetAlgorithmID()
 	///  to utilize 1.3.14.7.2.1.1. Prior to DL_PrivateKey_ElGamal, the ElGamal
 	///  keys [mistakenly] used the OID from DSA due to DL_GroupParmaters_GFP().
@@ -173,7 +173,7 @@ struct DL_PrivateKey_ElGamal : public BASE
 	virtual ~DL_PrivateKey_ElGamal() {}
 
 	/// \brief Retrieves the OID of the algorithm
-	/// \returns OID of the algorithm
+	/// \return OID of the algorithm
 	/// \details DL_PrivateKey_ElGamal provides an override for GetAlgorithmID()
 	///  to utilize 1.3.14.7.2.1.1. Prior to DL_PrivateKey_ElGamal, the ElGamal
 	///  keys [mistakenly] used the OID from DSA due to DL_GroupParmaters_GFP().
@@ -251,17 +251,21 @@ struct DL_PrivateKey_ElGamal : public BASE
 ///  If you need to <tt>Load</tt> an ElGamal key with the wrong OID then
 ///  see <A HREF="https://www.cryptopp.com/wiki/ElGamal">ElGamal</A> on
 ///  the Crypto++ wiki.
+/// \details At Crypto++ 8.6 ElGamalKeys were changed to use DL_CryptoKeys_ElGamal
+///  due to Issue 1069 and CVE-2021-40530. DL_CryptoKeys_ElGamal group parameters
+///  use the subgroup order, and not an estimated work factor.
 /// \sa <A HREF="https://github.com/weidai11/cryptopp/issues/876">Issue 876</A>,
-///  <A HREF="https://github.com/weidai11/cryptopp/issues/567">Issue 567</A>
+///  <A HREF="https://github.com/weidai11/cryptopp/issues/567">Issue 567</A>,
+///  <A HREF="https://github.com/weidai11/cryptopp/issues/1059">Issue 1059</A>
 /// \since Crypto++ 1.0
 struct ElGamalKeys
 {
 	/// \brief Implements DL_GroupParameters interface
-	typedef DL_CryptoKeys_GFP::GroupParameters GroupParameters;
+	typedef DL_CryptoKeys_ElGamal::GroupParameters GroupParameters;
 	/// \brief Implements DL_PrivateKey interface
-	typedef DL_PrivateKey_ElGamal<DL_CryptoKeys_GFP::PrivateKey> PrivateKey;
+	typedef DL_PrivateKey_ElGamal<DL_CryptoKeys_ElGamal::PrivateKey> PrivateKey;
 	/// \brief Implements DL_PublicKey interface
-	typedef DL_PublicKey_ElGamal<DL_CryptoKeys_GFP::PublicKey> PublicKey;
+	typedef DL_PublicKey_ElGamal<DL_CryptoKeys_ElGamal::PublicKey> PublicKey;
 };
 
 /// \brief ElGamal encryption scheme with non-standard padding
@@ -283,7 +287,7 @@ struct ElGamal
 	typedef SchemeOptions::PublicKey PublicKey;
 
 	/// \brief The algorithm name
-	/// \returns the algorithm name
+	/// \return the algorithm name
 	/// \details StaticAlgorithmName returns the algorithm's name as a static
 	///  member function.
 	CRYPTOPP_STATIC_CONSTEXPR const char* StaticAlgorithmName() {return "ElgamalEnc/Crypto++Padding";}

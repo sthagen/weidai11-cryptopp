@@ -18,7 +18,7 @@
 
 NAMESPACE_BEGIN(CryptoPP)
 
-/// \brief Base class for identifying alogorithm
+/// \brief Base class for identifying algorithm
 /// \tparam BASE base class from which to derive
 /// \tparam DERIVED class which to clone
 template <class DERIVED, class BASE>
@@ -47,7 +47,7 @@ public:
 	/// \brief The algorithm name
 	/// \return the algorithm name
 	/// \details AlgorithmName returns the algorithm's name as a member function.
-	///  The name is is acquired by calling StaticAlgorithmName.
+	///  The name is acquired by calling StaticAlgorithmName.
 	std::string AlgorithmName() const {return ALGORITHM_INFO::StaticAlgorithmName();}
 };
 
@@ -205,7 +205,7 @@ public:
 	/// \param length the size of the string, in bytes
 	/// \param messageEnd means how many filters to signal MessageEnd() to, including this one
 	/// \param blocking specifies whether the object should block when processing input
-	/// \throws InputRejected
+	/// \throw InputRejected
 	/// \return the number of bytes that remain to be processed (i.e., bytes not processed)
 	/// \details Internally, the default implementation throws InputRejected.
 	size_t Put2(const byte *inString, size_t length, int messageEnd, bool blocking)
@@ -467,12 +467,12 @@ protected:
 };
 
 /// \brief Implementation of BufferedTransformation's attachment interface
-/// \details Sink is a cornerstone of the Pipeline trinitiy. Data flows from
+/// \details Sink is a cornerstone of the Pipeline trinity. Data flows from
 ///  Sources, through Filters, and then terminates in Sinks. The difference
 ///  between a Source and Filter is a Source \a pumps data, while a Filter does
 ///  not. The difference between a Filter and a Sink is a Filter allows an
 ///  attached transformation, while a Sink does not.
-/// \details A Sink doesnot produce any retrievable output.
+/// \details A Sink does not produce any retrievable output.
 /// \details See the discussion of BufferedTransformation in cryptlib.h for
 ///  more details.
 class CRYPTOPP_DLL CRYPTOPP_NO_VTABLE Sink : public BufferedTransformation

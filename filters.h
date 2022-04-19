@@ -25,7 +25,7 @@
 NAMESPACE_BEGIN(CryptoPP)
 
 /// \brief Implementation of BufferedTransformation's attachment interface
-/// \details Filter is a cornerstone of the Pipeline trinitiy. Data flows from
+/// \details Filter is a cornerstone of the Pipeline trinity. Data flows from
 ///  Sources, through Filters, and then terminates in Sinks. The difference
 ///  between a Source and Filter is a Source \a pumps data, while a Filter does
 ///  not. The difference between a Filter and a Sink is a Filter allows an
@@ -222,7 +222,7 @@ struct CRYPTOPP_DLL FilterPutSpaceHelper
 	byte *HelpCreatePutSpace(BufferedTransformation &target, const std::string &channel, size_t minSize, size_t bufferSize)
 		{return HelpCreatePutSpace(target, channel, minSize, minSize, bufferSize);}
 
-	/// \brief Temporay working space
+	/// \brief Temporary working space
 	SecByteBlock m_tempSpace;
 };
 
@@ -267,23 +267,23 @@ public:
 		{CRYPTOPP_UNUSED(parameters); ResetMeter();}
 
 	/// \brief Number of bytes in the current message
-	/// \return GetCurrentMessageBytes() returns the number of bytes in the current message
+	/// \return the number of bytes in the current message
 	lword GetCurrentMessageBytes() const {return m_currentMessageBytes;}
 
 	/// \brief Number of bytes processed by the filter
-	/// \return GetTotalBytes() returns the number of bytes processed by the filter
+	/// \return the number of bytes processed by the filter
 	lword GetTotalBytes() const {return m_totalBytes;}
 
 	/// \brief Message number in the series
-	/// \return GetCurrentSeriesMessages() returns the message number in the series
+	/// \return the message number in the series
 	unsigned int GetCurrentSeriesMessages() const {return m_currentSeriesMessages;}
 
 	/// \brief Number of messages in the message series
-	/// \return GetTotalMessages() returns the number of messages in the message series
+	/// \return the number of messages in the message series
 	unsigned int GetTotalMessages() const {return m_totalMessages;}
 
 	/// \brief Number of messages processed by the filter
-	/// \return GetTotalMessageSeries() returns the number of messages processed by the filter
+	/// \return the number of messages processed by the filter
 	unsigned int GetTotalMessageSeries() const {return m_totalMessageSeries;}
 
 	// BufferedTransformation in cryptlib.h
@@ -537,7 +537,7 @@ public:
 	/// \param c reference to a StreamTransformation
 	/// \param attachment an optional attached transformation
 	/// \param padding the \ref BlockPaddingSchemeDef "padding scheme"
-	/// \details This contructor creates a StreamTransformationFilter() for stream ciphers and
+	/// \details This constructor creates a StreamTransformationFilter() for stream ciphers and
 	///  confidentiality-only block cipher modes of operation. If you are using an authenticated
 	///  encryption mode of operation, then use either AuthenticatedEncryptionFilter() or
 	///  AuthenticatedDecryptionFilter().
@@ -1191,7 +1191,7 @@ private:
 
 /// \brief Copy input to a memory buffer
 /// \details ArraySink wraps a fixed size buffer. The buffer is full once Put returns non-0.
-///  When used in a pipleline, ArraySink silently discards input if the buffer is full.
+///  When used in a pipeline, ArraySink silently discards input if the buffer is full.
 ///  AvailableSize() can be used to determine how much space remains in the buffer.
 ///  TotalPutLength() can be used to determine how many bytes were processed.
 /// \sa StringSink, ArrayXorSink
@@ -1233,7 +1233,7 @@ protected:
 
 /// \brief Xor input to a memory buffer
 /// \details ArrayXorSink wraps a fixed size buffer. The buffer is full once Put returns non-0.
-///  When used in a pipleline, ArrayXorSink silently discards input if the buffer is full.
+///  When used in a pipeline, ArrayXorSink silently discards input if the buffer is full.
 ///  AvailableSize() can be used to determine how much space remains in the buffer.
 ///  TotalPutLength() can be used to determine how many bytes were processed.
 /// \sa StringSink, ArraySink

@@ -4,12 +4,19 @@
 
 /// \file config_os.h
 /// \brief Library configuration file
+/// \details <tt>config_os.h</tt> provides defines for platforms and operating
+///  systems.
 /// \details <tt>config.h</tt> was split into components in May 2019 to better
-///  integrate with Autoconf and its feature tests. The splitting occured so
+///  integrate with Autoconf and its feature tests. The splitting occurred so
 ///  users could continue to include <tt>config.h</tt> while allowing Autoconf
 ///  to write new <tt>config_asm.h</tt> and new <tt>config_cxx.h</tt> using
 ///  its feature tests.
-/// \sa <A HREF="https://github.com/weidai11/cryptopp/issues/835">Issue 835</A>
+/// \note You should include <tt>config.h</tt> rather than <tt>config_os.h</tt>
+///  directly.
+/// \sa <A HREF="https://github.com/weidai11/cryptopp/issues/835">Issue 835,
+///  Make config.h more autoconf friendly</A>,
+///  <A HREF="https://www.cryptopp.com/wiki/Configure.sh">Configure.sh script</A>
+///  on the Crypto++ wiki
 /// \since Crypto++ 8.3
 
 #ifndef CRYPTOPP_CONFIG_OS_H
@@ -20,9 +27,10 @@
 // It is OK to remove the hard stop below, but you are on your own.
 // After building the library be sure to run self tests described
 // https://www.cryptopp.com/wiki/Release_Process#Self_Tests
-// Some relevant bug reports can be found at:
-// * Clang: http://github.com/weidai11/cryptopp/issues/147
-#if (defined(_MSC_VER) && defined(__clang__) && !(defined( __clang_analyzer__)))
+// The problems with Clang pretending to be other compilers is
+// discussed at http://github.com/weidai11/cryptopp/issues/147.
+#if (defined(_MSC_VER) && defined(__clang__) && \
+   !(defined( __clang_analyzer__)) && !defined(__INTEL_LLVM_COMPILER))
 # error: "Unsupported configuration"
 #endif
 

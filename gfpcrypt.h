@@ -47,8 +47,8 @@ public:
     /// \param rng a RandomNumberGenerator derived class
     /// \param pbits the size of p, in bits
     /// \details This function overload of Initialize() creates a new private key because it
-    ///   takes a RandomNumberGenerator() as a parameter. If you have an existing keypair,
-    ///   then use one of the other Initialize() overloads.
+    ///  takes a RandomNumberGenerator() as a parameter. If you have an existing keypair,
+    ///  then use one of the other Initialize() overloads.
     void Initialize(RandomNumberGenerator &rng, unsigned int pbits)
         {GenerateRandom(rng, MakeParameters("ModulusSize", (int)pbits));}
 
@@ -74,7 +74,7 @@ public:
     /// \param alg additional initialization parameters
     /// \details Recognised NameValuePairs are ModulusSize and
     ///  SubgroupOrderSize (optional)
-    /// \throws KeyingErr if a key can't be generated or algorithm parameters
+    /// \throw KeyingErr if a key can't be generated or algorithm parameters
     ///  are invalid
     void GenerateRandom(RandomNumberGenerator &rng, const NameValuePairs &alg);
 
@@ -82,12 +82,12 @@ public:
     /// \param name the name of the object or value to retrieve
     /// \param valueType reference to a variable that receives the value
     /// \param pValue void pointer to a variable that receives the value
-    /// \returns true if the value was retrieved, false otherwise
+    /// \return true if the value was retrieved, false otherwise
     /// \details GetVoidValue() retrieves the value of name if it exists.
     /// \note GetVoidValue() is an internal function and should be implemented
-    ///   by derived classes. Users should use one of the other functions instead.
+    ///  by derived classes. Users should use one of the other functions instead.
     /// \sa GetValue(), GetValueWithDefault(), GetIntValue(), GetIntValueWithDefault(),
-    ///   GetRequiredParameter() and GetRequiredIntParameter()
+    ///  GetRequiredParameter() and GetRequiredIntParameter()
     bool GetVoidValue(const char *name, const std::type_info &valueType, void *pValue) const;
 
     /// \brief Initialize or reinitialize this key
@@ -101,7 +101,7 @@ public:
     bool ValidateElement(unsigned int level, const Integer &element, const DL_FixedBasePrecomputation<Integer> *precomp) const;
 
     /// \brief Determine if subgroup membership check is fast
-    /// \returns true or false
+    /// \return true or false
     bool FastSubgroupCheckAvailable() const {return GetCofactor() == 2;}
 
     /// \brief Encodes the element
@@ -117,7 +117,7 @@ public:
 
     /// \brief Retrieve the encoded element's size
     /// \param reversible flag indicating the encoding format
-    /// \returns encoded element's size, in bytes
+    /// \return encoded element's size, in bytes
     /// \details The format of the encoded element varies by the underlying
     ///  type of the element and the reversible flag.
     /// \sa EncodeElement(), DecodeElement()
@@ -126,7 +126,7 @@ public:
     /// \brief Decodes the element
     /// \param encoded byte array with the encoded element
     /// \param checkForGroupMembership flag indicating if the element should be validated
-    /// \returns Element after decoding
+    /// \return Element after decoding
     /// \details DecodeElement() must be implemented in a derived class.
     /// \pre <tt>COUNTOF(encoded) == GetEncodedElementSize()</tt>
     /// \sa GetEncodedElementSize(), EncodeElement()
@@ -134,21 +134,21 @@ public:
 
     /// \brief Converts an element to an Integer
     /// \param element the element to convert to an Integer
-    /// \returns Element after converting to an Integer
+    /// \return Element after converting to an Integer
     /// \details ConvertElementToInteger() must be implemented in a derived class.
     Integer ConvertElementToInteger(const Element &element) const
         {return element;}
 
     /// \brief Retrieve the maximum exponent for the group
-    /// \returns the maximum exponent for the group
+    /// \return the maximum exponent for the group
     Integer GetMaxExponent() const;
 
     /// \brief Retrieve the OID of the algorithm
-    /// \returns OID of the algorithm
+    /// \return OID of the algorithm
     OID GetAlgorithmID() const;
 
     /// \brief Retrieve the modulus for the group
-    /// \returns the modulus for the group
+    /// \return the modulus for the group
     virtual const Integer & GetModulus() const =0;
 
     /// \brief Set group parameters
@@ -201,11 +201,11 @@ public:
 
     // IntegerGroupParameters
     /// \brief Retrieve the modulus for the group
-    /// \returns the modulus for the group
+    /// \return the modulus for the group
     const Integer & GetModulus() const {return this->m_groupPrecomputation.GetModulus();}
 
     /// \brief Retrieves a reference to the group generator
-    /// \returns const reference to the group generator
+    /// \return const reference to the group generator
     const Integer & GetGenerator() const {return this->m_gpc.GetBase(this->GetGroupPrecomputation());}
 
     void SetModulusAndSubgroupGenerator(const Integer &p, const Integer &g)        // these have to be set together
@@ -228,7 +228,7 @@ public:
 
     /// \brief Determines if an element is an identity
     /// \param element element to check
-    /// \returns true if the element is an identity, false otherwise
+    /// \return true if the element is an identity, false otherwise
     /// \details The identity element or or neutral element is a special element
     ///  in a group that leaves other elements unchanged when combined with it.
     /// \details IsIdentity() must be implemented in a derived class.
@@ -251,12 +251,12 @@ public:
     /// \param name the name of the object or value to retrieve
     /// \param valueType reference to a variable that receives the value
     /// \param pValue void pointer to a variable that receives the value
-    /// \returns true if the value was retrieved, false otherwise
+    /// \return true if the value was retrieved, false otherwise
     /// \details GetVoidValue() retrieves the value of name if it exists.
     /// \note GetVoidValue() is an internal function and should be implemented
-    ///   by derived classes. Users should use one of the other functions instead.
+    ///  by derived classes. Users should use one of the other functions instead.
     /// \sa GetValue(), GetValueWithDefault(), GetIntValue(), GetIntValueWithDefault(),
-    ///   GetRequiredParameter() and GetRequiredIntParameter()
+    ///  GetRequiredParameter() and GetRequiredIntParameter()
     bool GetVoidValue(const char *name, const std::type_info &valueType, void *pValue) const
     {
         return GetValueHelper<DL_GroupParameters_IntegerBased>(this, name, valueType, pValue).Assignable();
@@ -282,8 +282,28 @@ protected:
     unsigned int GetDefaultSubgroupOrderSize(unsigned int modulusSize) const {return modulusSize-1;}
 };
 
+/// ElGamal encryption for safe interop
+/// \sa <A HREF="https://eprint.iacr.org/2021/923.pdf">On the
+///  (in)security of ElGamal in OpenPGP</A>,
+///  <A HREF="https://github.com/weidai11/cryptopp/issues/1059">Issue 1059</A>,
+///  <A HREF="https://nvd.nist.gov/vuln/detail/CVE-2021-40530">CVE-2021-40530</A>
+/// \since Crypto++ 8.6
+class CRYPTOPP_DLL DL_GroupParameters_ElGamal : public DL_GroupParameters_GFP_DefaultSafePrime
+{
+public:
+    typedef NoCofactorMultiplication DefaultCofactorOption;
+
+    virtual ~DL_GroupParameters_ElGamal() {}
+
+	Integer GetMaxExponent() const
+	{
+		return GetSubgroupOrder()-1;
+	}
+};
+
 /// \brief GDSA algorithm
 /// \tparam T FieldElement type or class
+/// \details FieldElement <tt>T</tt> can be Integer, ECP or EC2N.
 template <class T>
 class DL_Algorithm_GDSA : public DL_ElgamalLikeSignatureAlgorithm<T>
 {
@@ -318,8 +338,9 @@ public:
 /// \brief DSA signature algorithm based on RFC 6979
 /// \tparam T FieldElement type or class
 /// \tparam H HashTransformation derived class
+/// \details FieldElement <tt>T</tt> can be Integer, ECP or EC2N.
 /// \sa <a href="http://tools.ietf.org/rfc/rfc6979.txt">RFC 6979, Deterministic Usage of the
-///   Digital Signature Algorithm (DSA) and Elliptic Curve Digital Signature Algorithm (ECDSA)</a>
+///  Digital Signature Algorithm (DSA) and Elliptic Curve Digital Signature Algorithm (ECDSA)</a>
 /// \since Crypto++ 6.0
 template <class T, class H>
 class DL_Algorithm_DSA_RFC6979 : public DL_Algorithm_GDSA<T>, public DeterministicSignatureAlgorithm
@@ -474,11 +495,12 @@ private:
 
 /// \brief German Digital Signature Algorithm
 /// \tparam T FieldElement type or class
+/// \details FieldElement <tt>T</tt> can be Integer, ECP or EC2N.
 /// \details The Digital Signature Scheme ECGDSA does not define the algorithm over integers. Rather, the
-///   signature algorithm is only defined over elliptic curves. However, The library design is such that the
-///   generic algorithm reside in <tt>gfpcrypt.h</tt>.
+///  signature algorithm is only defined over elliptic curves. However, the library design is such that the
+///  generic algorithm reside in <tt>gfpcrypt.h</tt>.
 /// \sa Erwin Hess, Marcus Schafheutle, and Pascale Serf <A HREF="http://www.teletrust.de/fileadmin/files/oid/ecgdsa_final.pdf">
-///   The Digital Signature Scheme ECGDSA (October 24, 2006)</A>
+///  The Digital Signature Scheme ECGDSA (October 24, 2006)</A>
 template <class T>
 class DL_Algorithm_GDSA_ISO15946 : public DL_ElgamalLikeSignatureAlgorithm<T>
 {
@@ -520,6 +542,7 @@ CRYPTOPP_DLL_TEMPLATE_CLASS DL_Algorithm_DSA_RFC6979<Integer, SHA512>;
 
 /// \brief NR algorithm
 /// \tparam T FieldElement type or class
+/// \details FieldElement <tt>T</tt> can be Integer, ECP or EC2N.
 template <class T>
 class DL_Algorithm_NR : public DL_ElgamalLikeSignatureAlgorithm<T>
 {
@@ -596,8 +619,8 @@ public:
     /// \param rng a RandomNumberGenerator derived class
     /// \param modulusBits the size of the modulus, in bits
     /// \details This function overload of Initialize() creates a new private key because it
-    ///   takes a RandomNumberGenerator() as a parameter. If you have an existing keypair,
-    ///   then use one of the other Initialize() overloads.
+    ///  takes a RandomNumberGenerator() as a parameter. If you have an existing keypair,
+    ///  then use one of the other Initialize() overloads.
     void Initialize(RandomNumberGenerator &rng, unsigned int modulusBits)
         {this->GenerateRandomWithKeySize(rng, modulusBits);}
 
@@ -606,8 +629,8 @@ public:
     /// \param p the modulus
     /// \param g the generator
     /// \details This function overload of Initialize() creates a new private key because it
-    ///   takes a RandomNumberGenerator() as a parameter. If you have an existing keypair,
-    ///   then use one of the other Initialize() overloads.
+    ///  takes a RandomNumberGenerator() as a parameter. If you have an existing keypair,
+    ///  then use one of the other Initialize() overloads.
     void Initialize(RandomNumberGenerator &rng, const Integer &p, const Integer &g)
         {this->GenerateRandom(rng, MakeParameters("Modulus", p)("SubgroupGenerator", g));}
 
@@ -617,8 +640,8 @@ public:
     /// \param q the subgroup order
     /// \param g the generator
     /// \details This function overload of Initialize() creates a new private key because it
-    ///   takes a RandomNumberGenerator() as a parameter. If you have an existing keypair,
-    ///   then use one of the other Initialize() overloads.
+    ///  takes a RandomNumberGenerator() as a parameter. If you have an existing keypair,
+    ///  then use one of the other Initialize() overloads.
     void Initialize(RandomNumberGenerator &rng, const Integer &p, const Integer &q, const Integer &g)
         {this->GenerateRandom(rng, MakeParameters("Modulus", p)("SubgroupOrder", q)("SubgroupGenerator", g));}
 
@@ -664,6 +687,19 @@ struct DL_CryptoKeys_GFP
     typedef DL_PrivateKey_GFP<GroupParameters> PrivateKey;
 };
 
+/// ElGamal encryption keys for safe interop
+/// \sa <A HREF="https://eprint.iacr.org/2021/923.pdf">On the
+///  (in)security of ElGamal in OpenPGP</A>,
+///  <A HREF="https://github.com/weidai11/cryptopp/issues/1059">Issue 1059</A>,
+///  <A HREF="https://nvd.nist.gov/vuln/detail/CVE-2021-40530">CVE-2021-40530</A>
+/// \since Crypto++ 8.6
+struct DL_CryptoKeys_ElGamal
+{
+    typedef DL_GroupParameters_ElGamal GroupParameters;
+    typedef DL_PublicKey_GFP<GroupParameters> PublicKey;
+    typedef DL_PrivateKey_GFP<GroupParameters> PrivateKey;
+};
+
 /// \brief DSA signature scheme
 /// \tparam H HashTransformation derived class
 /// \sa <a href="http://www.weidai.com/scan-mirror/sig.html#DSA-1363">DSA-1363</a>
@@ -701,16 +737,16 @@ public:
     /// \brief Check the group for errors
     /// \param rng RandomNumberGenerator for objects which use randomized testing
     /// \param level level of thoroughness
-    /// \returns true if the tests succeed, false otherwise
+    /// \return true if the tests succeed, false otherwise
     /// \details ValidateGroup() also checks that the lengths of p and q are allowed
     ///  by the DSA standard.
     /// \details There are four levels of thoroughness:
-    ///   <ul>
-    ///   <li>0 - using this object won't cause a crash or exception
-    ///   <li>1 - this object will probably function, and encrypt, sign, other operations correctly
-    ///   <li>2 - ensure this object will function correctly, and perform reasonable security checks
-    ///   <li>3 - perform reasonable security checks, and do checks that may take a long time
-    ///   </ul>
+    ///  <ul>
+    ///  <li>0 - using this object won't cause a crash or exception
+    ///  <li>1 - this object will probably function, and encrypt, sign, other operations correctly
+    ///  <li>2 - ensure this object will function correctly, and perform reasonable security checks
+    ///  <li>3 - perform reasonable security checks, and do checks that may take a long time
+    ///  </ul>
     /// \details Level 0 does not require a RandomNumberGenerator. A NullRNG() can be used for level 0.
     ///  Level 1 may not check for weak keys and such. Levels 2 and 3 are recommended.
     bool ValidateGroup(RandomNumberGenerator &rng, unsigned int level) const;
@@ -723,18 +759,18 @@ public:
     ///  <tt>DSA::MAX_PRIME_LENGTH</tt>, and divisible by <tt>DSA::PRIME_LENGTH_MULTIPLE</tt>.
     /// \details An example of changing the modulus size using NameValuePairs is shown below.
     /// <pre>
-    ///   AlgorithmParameters params = MakeParameters
-    ///     (Name::ModulusSize(), 2048);
+    ///  AlgorithmParameters params = MakeParameters
+    ///    (Name::ModulusSize(), 2048);
     ///
-    ///   DL_GroupParameters_DSA groupParams;
-    ///   groupParams.GenerateRandom(prng, params);
+    ///  DL_GroupParameters_DSA groupParams;
+    ///  groupParams.GenerateRandom(prng, params);
     /// </pre>
-    /// \throws KeyingErr if a key can't be generated or algorithm parameters are invalid.
+    /// \throw KeyingErr if a key can't be generated or algorithm parameters are invalid.
     void GenerateRandom(RandomNumberGenerator &rng, const NameValuePairs &alg);
 
     /// \brief Check the prime length for errors
     /// \param pbits number of bits in the prime number
-    /// \returns true if the tests succeed, false otherwise
+    /// \return true if the tests succeed, false otherwise
     static bool CRYPTOPP_API IsValidPrimeLength(unsigned int pbits)
         {return pbits >= MIN_PRIME_LENGTH && pbits <= MAX_PRIME_LENGTH && pbits % PRIME_LENGTH_MULTIPLE == 0;}
 
@@ -764,25 +800,25 @@ struct DL_Keys_DSA
 /// \brief DSA signature scheme
 /// \tparam H HashTransformation derived class
 /// \details The class is named DSA2 instead of DSA for backwards compatibility because
-///   DSA was a non-template class.
+///  DSA was a non-template class.
 /// \details DSA default method GenerateRandom uses a 2048-bit modulus and a 224-bit subgoup by default.
-///   The modulus can be changed using the following code:
+///  The modulus can be changed using the following code:
 /// <pre>
-///   DSA::PrivateKey privateKey;
-///   privateKey.GenerateRandomWithKeySize(prng, 2048);
+///  DSA::PrivateKey privateKey;
+///  privateKey.GenerateRandomWithKeySize(prng, 2048);
 /// </pre>
 /// \details The subgroup order can be changed using the following code:
 /// <pre>
-///   AlgorithmParameters params = MakeParameters
-///     (Name::ModulusSize(), 2048)
-///     (Name::SubgroupOrderSize(), 256);
+///  AlgorithmParameters params = MakeParameters
+///    (Name::ModulusSize(), 2048)
+///    (Name::SubgroupOrderSize(), 256);
 ///
-///   DSA::PrivateKey privateKey;
-///   privateKey.GenerateRandom(prng, params);
+///  DSA::PrivateKey privateKey;
+///  privateKey.GenerateRandom(prng, params);
 /// </pre>
 /// \sa <a href="http://en.wikipedia.org/wiki/Digital_Signature_Algorithm">DSA</a>, as specified in FIPS 186-3,
-///   <a href="https://www.cryptopp.com/wiki/Digital_Signature_Algorithm">Digital Signature Algorithm</a> on the wiki, and
-///   <a href="https://www.cryptopp.com/wiki/NameValuePairs">NameValuePairs</a> on the wiki.
+///  <a href="https://www.cryptopp.com/wiki/Digital_Signature_Algorithm">Digital Signature Algorithm</a> on the wiki, and
+///  <a href="https://www.cryptopp.com/wiki/NameValuePairs">NameValuePairs</a> on the wiki.
 /// \since Crypto++ 1.0 for DSA, Crypto++ 5.6.2 for DSA2, Crypto++ 6.1 for 2048-bit modulus.
 template <class H>
 class DSA2 : public DL_SS<
@@ -823,12 +859,12 @@ CRYPTOPP_DLL_TEMPLATE_CLASS DL_PrivateKey_WithSignaturePairwiseConsistencyTest<D
 /// \tparam DHAES_MODE flag indicating DHAES mode
 /// \tparam LABEL_OCTETS flag indicating the label is octet count
 /// \details DL_EncryptionAlgorithm_Xor is based on an early P1363 draft, which itself appears to be based on an
-///   early Certicom SEC-1 draft (or an early SEC-1 draft was based on a P1363 draft). Crypto++ 4.2 used it in its Integrated
-///   Ecryption Schemes with <tt>NoCofactorMultiplication</tt>, <tt>DHAES_MODE=false</tt> and <tt>LABEL_OCTETS=true</tt>.
+///  early Certicom SEC-1 draft (or an early SEC-1 draft was based on a P1363 draft). Crypto++ 4.2 used it in its Integrated
+///  Ecryption Schemes with <tt>NoCofactorMultiplication</tt>, <tt>DHAES_MODE=false</tt> and <tt>LABEL_OCTETS=true</tt>.
 /// \details If you need this method for Crypto++ 4.2 compatibility, then use the ECIES template class with
-///   <tt>NoCofactorMultiplication</tt>, <tt>DHAES_MODE=false</tt> and <tt>LABEL_OCTETS=true</tt>.
+///  <tt>NoCofactorMultiplication</tt>, <tt>DHAES_MODE=false</tt> and <tt>LABEL_OCTETS=true</tt>.
 /// \details If you need this method for Bouncy Castle 1.54 and Botan 1.11 compatibility, then use the ECIES template class with
-///   <tt>NoCofactorMultiplication</tt>, <tt>DHAES_MODE=ture</tt> and <tt>LABEL_OCTETS=false</tt>.
+///  <tt>NoCofactorMultiplication</tt>, <tt>DHAES_MODE=true</tt> and <tt>LABEL_OCTETS=false</tt>.
 /// \details Bouncy Castle 1.54 and Botan 1.11 compatibility are the default template parameters.
 /// \since Crypto++ 4.0
 template <class MAC, bool DHAES_MODE, bool LABEL_OCTETS=false>
@@ -913,7 +949,11 @@ public:
     }
 };
 
-/// _
+/// \brief P1363 based Key Derivation Method
+/// \tparam T FieldElement type or class
+/// \tparam DHAES_MODE flag indicating DHAES mode
+/// \tparam KDF key derivation function
+/// \details FieldElement <tt>T</tt> can be Integer, ECP or EC2N.
 template <class T, bool DHAES_MODE, class KDF>
 class DL_KeyDerivationAlgorithm_P1363 : public DL_KeyDerivationAlgorithm<T>
 {
@@ -948,32 +988,32 @@ public:
 /// \tparam DHAES_MODE flag indicating if the MAC includes addition context parameters such as the label
 /// \tparam LABEL_OCTETS flag indicating if the label size is specified in octets or bits
 /// \details DLIES is an Integer based Integrated Encryption Scheme (IES). The scheme combines a Key Encapsulation Method (KEM)
-///   with a Data Encapsulation Method (DEM) and a MAC tag. The scheme is
-///   <A HREF="http://en.wikipedia.org/wiki/ciphertext_indistinguishability">IND-CCA2</A>, which is a strong notion of security.
-///   You should prefer an Integrated Encryption Scheme over homegrown schemes.
+///  with a Data Encapsulation Method (DEM) and a MAC tag. The scheme is
+///  <A HREF="http://en.wikipedia.org/wiki/ciphertext_indistinguishability">IND-CCA2</A>, which is a strong notion of security.
+///  You should prefer an Integrated Encryption Scheme over homegrown schemes.
 /// \details The library's original implementation is based on an early P1363 draft, which itself appears to be based on an early Certicom
-///   SEC-1 draft (or an early SEC-1 draft was based on a P1363 draft). Crypto++ 4.2 used the early draft in its Integrated Ecryption
-///   Schemes with <tt>NoCofactorMultiplication</tt>, <tt>DHAES_MODE=false</tt> and <tt>LABEL_OCTETS=true</tt>.
+///  SEC-1 draft (or an early SEC-1 draft was based on a P1363 draft). Crypto++ 4.2 used the early draft in its Integrated Ecryption
+///  Schemes with <tt>NoCofactorMultiplication</tt>, <tt>DHAES_MODE=false</tt> and <tt>LABEL_OCTETS=true</tt>.
 /// \details If you desire an Integrated Encryption Scheme with Crypto++ 4.2 compatibility, then use the DLIES template class with
-///   <tt>NoCofactorMultiplication</tt>, <tt>DHAES_MODE=false</tt> and <tt>LABEL_OCTETS=true</tt>.
+///  <tt>NoCofactorMultiplication</tt>, <tt>DHAES_MODE=false</tt> and <tt>LABEL_OCTETS=true</tt>.
 /// \details If you desire an Integrated Encryption Scheme with Bouncy Castle 1.54 and Botan 1.11 compatibility, then use the DLIES
-///   template class with <tt>NoCofactorMultiplication</tt>, <tt>DHAES_MODE=true</tt> and <tt>LABEL_OCTETS=false</tt>.
+///  template class with <tt>NoCofactorMultiplication</tt>, <tt>DHAES_MODE=true</tt> and <tt>LABEL_OCTETS=false</tt>.
 /// \details The default template parameters ensure compatibility with Bouncy Castle 1.54 and Botan 1.11. The combination of
-///   <tt>IncompatibleCofactorMultiplication</tt> and <tt>DHAES_MODE=true</tt> is recommended for best efficiency and security.
-///   SHA1 is used for compatibility reasons, but it can be changed if desired. SHA-256 or another hash will likely improve the
-///   security provided by the MAC. The hash is also used in the key derivation function as a PRF.
+///  <tt>IncompatibleCofactorMultiplication</tt> and <tt>DHAES_MODE=true</tt> is recommended for best efficiency and security.
+///  SHA1 is used for compatibility reasons, but it can be changed if desired. SHA-256 or another hash will likely improve the
+///  security provided by the MAC. The hash is also used in the key derivation function as a PRF.
 /// \details Below is an example of constructing a Crypto++ 4.2 compatible DLIES encryptor and decryptor.
 /// <pre>
-///     AutoSeededRandomPool prng;
-///     DL_PrivateKey_GFP<DL_GroupParameters_GFP> key;
-///     key.Initialize(prng, 2048);
+///    AutoSeededRandomPool prng;
+///    DL_PrivateKey_GFP<DL_GroupParameters_GFP> key;
+///    key.Initialize(prng, 2048);
 ///
-///     DLIES<SHA1,NoCofactorMultiplication,true,true>::Decryptor decryptor(key);
-///     DLIES<SHA1,NoCofactorMultiplication,true,true>::Encryptor encryptor(decryptor);
+///    DLIES<SHA1,NoCofactorMultiplication,true,true>::Decryptor decryptor(key);
+///    DLIES<SHA1,NoCofactorMultiplication,true,true>::Encryptor encryptor(decryptor);
 /// </pre>
 /// \sa ECIES, <a href="http://www.weidai.com/scan-mirror/ca.html#DLIES">Discrete Log Integrated Encryption Scheme (DLIES)</a>,
-///   Martínez, Encinas, and Ávila's <A HREF="http://digital.csic.es/bitstream/10261/32671/1/V2-I2-P7-13.pdf">A Survey of the Elliptic
-///   Curve Integrated Encryption Schemes</A>
+///  Martínez, Encinas, and Ávila's <A HREF="http://digital.csic.es/bitstream/10261/32671/1/V2-I2-P7-13.pdf">A Survey of the Elliptic
+///  Curve Integrated Encryption Schemes</A>
 /// \since Crypto++ 4.0, Crypto++ 5.7 for Bouncy Castle and Botan compatibility
 template <class HASH = SHA1, class COFACTOR_OPTION = NoCofactorMultiplication, bool DHAES_MODE = true, bool LABEL_OCTETS=false>
 struct DLIES

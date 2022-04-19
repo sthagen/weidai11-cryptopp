@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 
-PWD_DIR=$(pwd)
-function cleanup {
-    cd "$PWD_DIR"
-}
-trap cleanup EXIT
+#############################################################################
+#
+# This script tests the CMake gear.
+#
+# Written and placed in public domain by Jeffrey Walton.
+#
+# Crypto++ Library is copyrighted as a compilation and (as of version 5.6.2)
+# licensed under the Boost Software License 1.0, while the individual files
+# in the compilation are all public domain.
+#
+# See https://www.cryptopp.com/wiki/CMake for more details
+#
+#############################################################################
 
 # Fixup ancient Bash
 # https://unix.stackexchange.com/q/468579/56041
@@ -40,15 +48,17 @@ files=(CMakeLists.txt cryptopp-config.cmake)
 
 for file in "${files[@]}"; do
 	echo "Downloading $file"
-	if ! curl -o "$file" --silent --insecure "https://raw.githubusercontent.com/noloader/cryptopp-cmake/master/$file"; then
+	if ! curl -L -s -o "$file" "https://raw.githubusercontent.com/noloader/cryptopp-cmake/master/$file"; then
 		echo "$file download failed"
 		exit 1
 	fi
+    # Throttle
+    sleep 1
 done
 
-rm -rf "$PWD_DIR/cmake_build"
-mkdir -p "$PWD_DIR/cmake_build"
-cd "$PWD_DIR/cmake_build"
+rm -rf "$(pwd)/cmake_build"
+mkdir -p "$(pwd)/cmake_build"
+cd "$(pwd)/cmake_build" || exit 1
 
 #############################################################################
 
@@ -56,7 +66,7 @@ echo ""
 echo "Building test artifacts"
 echo ""
 
-if [[ ! -z "$CXX" ]];
+if [[ -n "$CXX" ]];
 then
 	if ! CXX="$CXX" "$CMAKE" -DCMAKE_CXX_COMPILER="$CXX" ../; then
 		echo "cmake failed"

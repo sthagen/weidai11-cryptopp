@@ -4,12 +4,19 @@
 
 /// \file config_align.h
 /// \brief Library configuration file
+/// \details <tt>config_align.h</tt> provides defines for aligned memory
+///  allocations.
 /// \details <tt>config.h</tt> was split into components in May 2019 to better
-///  integrate with Autoconf and its feature tests. The splitting occured so
+///  integrate with Autoconf and its feature tests. The splitting occurred so
 ///  users could continue to include <tt>config.h</tt> while allowing Autoconf
 ///  to write new <tt>config_asm.h</tt> and new <tt>config_cxx.h</tt> using
 ///  its feature tests.
-/// \sa <A HREF="https://github.com/weidai11/cryptopp/issues/835">Issue 835</A>
+/// \note You should include <tt>config.h</tt> rather than <tt>config_align.h</tt>
+///  directly.
+/// \sa <A HREF="https://github.com/weidai11/cryptopp/issues/835">Issue 835,
+///  Make config.h more autoconf friendly</A>,
+///  <A HREF="https://www.cryptopp.com/wiki/Configure.sh">Configure.sh script</A>
+///  on the Crypto++ wiki
 /// \since Crypto++ 8.3
 
 #ifndef CRYPTOPP_CONFIG_ALIGN_H
@@ -20,7 +27,7 @@
 #include "config_cxx.h"  // CRYPTOPP_CXX11_ALIGNAS
 #include "config_ver.h"  // Compiler versions
 
-// Nearly all Intel's and AMD's have SSE. Enable it independent of SSE ASM and intrinscs.
+// Nearly all Intel's and AMD's have SSE. Enable it independent of SSE ASM and intrinsics.
 // ARM NEON and ARMv8 ASIMD only need natural alignment of an element in the vector.
 // Altivec through POWER7 need vector alignment. POWER8 and POWER9 relax the requirement.
 #if defined(CRYPTOPP_DISABLE_ASM)
