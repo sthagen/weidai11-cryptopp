@@ -187,7 +187,7 @@ if [[ ("$IS_X86" -ne 0 || "$IS_X64" -ne 0) ]]; then
     elif [[ ("$IS_HURD" -ne 0) ]]; then
         : # Do nothing... cpuid is not helpful at the moment
     else
-        X86_CPU_FLAGS="$(${AWK} '{IGNORECASE=1}{if ($1 == "flags"){print;exit}}' < /proc/cpuinfo | cut -f 2 -d ':')"
+        X86_CPU_FLAGS="$(${AWK} '{IGNORECASE=1}{if ($1 == "flags"){print;exit}}' < /proc/cpuinfo 2>/dev/null | cut -f 2 -d ':')"
     fi
 elif [[ ("$IS_ARM32" -ne 0 || "$IS_ARM64" -ne 0) ]]; then
     if [[ ("$IS_DARWIN" -ne 0) ]]; then
@@ -309,13 +309,14 @@ fi
 
 # Now that the compiler is fixed, determine the compiler version for fixups
 CXX_VERSION=$("${CXX}" -v 2>&1)
-GCC_4_8=$("${GREP}" -i -c -E 'gcc version 4\.8' <<< "${CXX_VERSION}")
-GCC_4_8_OR_ABOVE=$("${GREP}" -i -c -E 'gcc version (4\.[8-9]|[5-9]\.[0-9])' <<< "${CXX_VERSION}")
-GCC_11_0_OR_ABOVE=$("${GREP}" -i -c -E 'gcc \(GCC\) (1[1-9]\.|[2-9][0-9]\.)' <<< "${CXX_VERSION}")
-GCC_12_0_OR_ABOVE=$("${GREP}" -i -c -E 'gcc \(GCC\) (1[2-9]\.|[2-9][0-9]\.)' <<< "${CXX_VERSION}")
+CXX_GCC_VERSION=$("${CXX}" --version 2>&1 | head -n 1 | ${GREP} -i -E '^(gcc|g++)' | ${AWK} '{print $(NF)}')
+GCC_4_8=$(echo "${CXX_GCC_VERSION}" | "${GREP}" -i -c -E '^4\.8' <<< "${CXX_GCC_VERSION}")
+GCC_4_8_OR_ABOVE=$(echo "${CXX_GCC_VERSION}" | "${GREP}" -i -c -E '^(4\.[8-9]|[5-9]\.|[1-9][0-9]\.)')
+GCC_11_0_OR_ABOVE=$(echo "${CXX_GCC_VERSION}" | "${GREP}" -i -c -E '^(1[1-9]\.|[2-9][0-9]\.)')
+GCC_12_0_OR_ABOVE=$(echo "${CXX_GCC_VERSION}" | "${GREP}" -i -c -E '^(1[2-9]\.|[2-9][0-9]\.)')
 
-CXX_VERSION=$("${CXX}" -V 2>&1)
-SUNCC_5_10_OR_ABOVE=$("${GREP}" -c -E "CC: (Sun|Studio) .* (5\.1[0-9]|5\.[2-9]|[6-9]\.)" <<< "${CXX_VERSION}")
+CXX_SUNCC_VERSION=$("${CXX}" -V 2>&1 | head -n 1 | ${GREP} -i -E '^CC: (Sun|Studio)' | ${AWK} '{print $(NF)}')
+SUNCC_5_10_OR_ABOVE=$(echo "${CXX_SUNCC_VERSION}" | "${GREP}" -c -E "^(5\.1[0-9]|5\.[2-9]|[6-9]\.)")
 
 # Fixup, bad code generation
 if [[ ("$SUNCC_5_10_OR_ABOVE" -ne 0) ]]; then
@@ -323,6 +324,7 @@ if [[ ("$SUNCC_5_10_OR_ABOVE" -ne 0) ]]; then
 fi
 
 # Fixup, Analyzer available in GCC 10.0, but C++ is not planned until GCC 11.
+# GCC 11.0 is still missing analyzer support for C++.
 if [[ ("$GCC_COMPILER" -ne 0) && ("$GCC_12_0_OR_ABOVE" -ne 0) ]]; then
     HAVE_ANALYZER=0
 fi
@@ -1137,7 +1139,10 @@ echo "CPU: $CPU_COUNT logical" | tee -a "$TEST_RESULTS"
 echo "FREQ: $CPU_FREQ GHz" | tee -a "$TEST_RESULTS"
 echo "MEM: $MEM_SIZE MB" | tee -a "$TEST_RESULTS"
 
-if [[ ("$CPU_COUNT" -ge 2 && "$MEM_SIZE" -ge 1280 && "$HAVE_SWAP" -ne 0) ]]; then
+if [[ -n "$MAKE_JOBS" ]]; then
+    MAKEARGS=(-j "$MAKE_JOBS")
+    echo "Using $MAKE -j $MAKE_JOBS"
+elif [[ ("$CPU_COUNT" -ge 2 && "$MEM_SIZE" -ge 1280 && "$HAVE_SWAP" -ne 0) ]]; then
     if [[ ("$WANT_NICE" -eq 1) ]]; then
         CPU_COUNT=$(echo -n "$CPU_COUNT 2" | "${AWK}" '{print int($1/$2)}')
     fi
@@ -1167,7 +1172,7 @@ else
 fi
 
 CXX_PATH=$(command -v "${CXX}" 2>/dev/null)
-CXX_SYMLINK=$(ls -l "${CXX_PATH}" 2>/dev/null | "${GREP}" -c '\->' | "${AWK}" '{print $1}')
+CXX_SYMLINK=$(ls -l "${CXX_PATH}" 2>/dev/null | "${GREP}" -c '^l' | "${AWK}" '{print $1}')
 if [[ ("${CXX_SYMLINK}" -ne 0) ]]; then CXX_PATH="${CXX_PATH} (symlinked)"; fi
 echo "Pathname: ${CXX_PATH}" | tee -a "$TEST_RESULTS"
 
