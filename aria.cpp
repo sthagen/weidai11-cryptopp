@@ -7,14 +7,6 @@
 #include "misc.h"
 #include "cpu.h"
 
-#if CRYPTOPP_SSE2_INTRIN_AVAILABLE
-# define CRYPTOPP_ENABLE_ARIA_SSE2_INTRINSICS 1
-#endif
-
-#if CRYPTOPP_SSSE3_AVAILABLE
-# define CRYPTOPP_ENABLE_ARIA_SSSE3_INTRINSICS 1
-#endif
-
 NAMESPACE_BEGIN(CryptoPP)
 NAMESPACE_BEGIN(ARIATab)
 
@@ -96,15 +88,6 @@ inline void ARIA_FE(word32 t[4]) {
 	ARIA_P(t[2],t[3],t[0],t[1]);
 	ARIA_MM(t[0],t[1],t[2],t[3]);
 }
-
-#if (CRYPTOPP_ARM_NEON_AVAILABLE)
-extern void ARIA_UncheckedSetKey_Schedule_NEON(byte* rk, word32* ws, unsigned int keylen);
-extern void ARIA_ProcessAndXorBlock_NEON(const byte* xorBlock, byte* outblock, const byte *rk, word32 *t);
-#endif
-
-#if (CRYPTOPP_SSSE3_AVAILABLE)
-extern void ARIA_ProcessAndXorBlock_SSSE3(const byte* xorBlock, byte* outBlock, const byte *rk, word32 *t);
-#endif
 
 // n-bit right shift of Y XORed to X
 template <unsigned int N>
@@ -190,38 +173,29 @@ void ARIA::Base::UncheckedSetKey(const byte *key, unsigned int keylen, const Nam
 
 	w3[0]=t[0]^w1[0]; w3[1]=t[1]^w1[1]; w3[2]=t[2]^w1[2]; w3[3]=t[3]^w1[3];
 
-#if CRYPTOPP_ARM_NEON_AVAILABLE
-	if (HasNEON())
-	{
-		ARIA_UncheckedSetKey_Schedule_NEON(rk, m_w, keylen);
-	}
-	else
-#endif  // CRYPTOPP_ARM_NEON_AVAILABLE
-	{
-		ARIA_GSRK<19>(w0, w1, rk +   0);
-		ARIA_GSRK<19>(w1, w2, rk +  16);
-		ARIA_GSRK<19>(w2, w3, rk +  32);
-		ARIA_GSRK<19>(w3, w0, rk +  48);
-		ARIA_GSRK<31>(w0, w1, rk +  64);
-		ARIA_GSRK<31>(w1, w2, rk +  80);
-		ARIA_GSRK<31>(w2, w3, rk +  96);
-		ARIA_GSRK<31>(w3, w0, rk + 112);
-		ARIA_GSRK<67>(w0, w1, rk + 128);
-		ARIA_GSRK<67>(w1, w2, rk + 144);
-		ARIA_GSRK<67>(w2, w3, rk + 160);
-		ARIA_GSRK<67>(w3, w0, rk + 176);
-		ARIA_GSRK<97>(w0, w1, rk + 192);
+	ARIA_GSRK<19>(w0, w1, rk +   0);
+	ARIA_GSRK<19>(w1, w2, rk +  16);
+	ARIA_GSRK<19>(w2, w3, rk +  32);
+	ARIA_GSRK<19>(w3, w0, rk +  48);
+	ARIA_GSRK<31>(w0, w1, rk +  64);
+	ARIA_GSRK<31>(w1, w2, rk +  80);
+	ARIA_GSRK<31>(w2, w3, rk +  96);
+	ARIA_GSRK<31>(w3, w0, rk + 112);
+	ARIA_GSRK<67>(w0, w1, rk + 128);
+	ARIA_GSRK<67>(w1, w2, rk + 144);
+	ARIA_GSRK<67>(w2, w3, rk + 160);
+	ARIA_GSRK<67>(w3, w0, rk + 176);
+	ARIA_GSRK<97>(w0, w1, rk + 192);
 
-		if (keylen > 16)
+	if (keylen > 16)
+	{
+		ARIA_GSRK<97>(w1, w2, rk + 208);
+		ARIA_GSRK<97>(w2, w3, rk + 224);
+
+		if (keylen > 24)
 		{
-			ARIA_GSRK<97>(w1, w2, rk + 208);
-			ARIA_GSRK<97>(w2, w3, rk + 224);
-
-			if (keylen > 24)
-			{
-				ARIA_GSRK< 97>(w3, w0, rk + 240);
-				ARIA_GSRK<109>(w0, w1, rk + 256);
-			}
+			ARIA_GSRK< 97>(w3, w0, rk + 240);
+			ARIA_GSRK<109>(w0, w1, rk + 256);
 		}
 	}
 
@@ -293,65 +267,85 @@ void ARIA::Base::ProcessAndXorBlock(const byte *inBlock, const byte *xorBlock, b
 	rk = ARIA_KXL(rk, t); ARIA_FO(t); rk = ARIA_KXL(rk, t); ARIA_FE(t);
 	rk = ARIA_KXL(rk, t); ARIA_FO(t); rk = ARIA_KXL(rk, t);
 
-#if CRYPTOPP_ENABLE_ARIA_SSSE3_INTRINSICS
-	if (HasSSSE3())
-	{
-		ARIA_ProcessAndXorBlock_SSSE3(xorBlock, outBlock, rk, t);
-		return;
-	}
-	else
-#endif  // CRYPTOPP_ENABLE_ARIA_SSSE3_INTRINSICS
-#if (CRYPTOPP_ARM_NEON_AVAILABLE)
-	if (HasNEON())
-	{
-		ARIA_ProcessAndXorBlock_NEON(xorBlock, outBlock, rk, t);
-		return;
-	}
-	else
-#endif  // CRYPTOPP_ARM_NEON_AVAILABLE
 #if (CRYPTOPP_LITTLE_ENDIAN)
+	if (xorBlock)
 	{
-		outBlock[ 0] = (byte)(X1[ARIA_BRF(t[0],3)]   ) ^ rk[ 3];
-		outBlock[ 1] = (byte)(X2[ARIA_BRF(t[0],2)]>>8) ^ rk[ 2];
-		outBlock[ 2] = (byte)(S1[ARIA_BRF(t[0],1)]   ) ^ rk[ 1];
-		outBlock[ 3] = (byte)(S2[ARIA_BRF(t[0],0)]   ) ^ rk[ 0];
-		outBlock[ 4] = (byte)(X1[ARIA_BRF(t[1],3)]   ) ^ rk[ 7];
-		outBlock[ 5] = (byte)(X2[ARIA_BRF(t[1],2)]>>8) ^ rk[ 6];
-		outBlock[ 6] = (byte)(S1[ARIA_BRF(t[1],1)]   ) ^ rk[ 5];
-		outBlock[ 7] = (byte)(S2[ARIA_BRF(t[1],0)]   ) ^ rk[ 4];
-		outBlock[ 8] = (byte)(X1[ARIA_BRF(t[2],3)]   ) ^ rk[11];
-		outBlock[ 9] = (byte)(X2[ARIA_BRF(t[2],2)]>>8) ^ rk[10];
-		outBlock[10] = (byte)(S1[ARIA_BRF(t[2],1)]   ) ^ rk[ 9];
-		outBlock[11] = (byte)(S2[ARIA_BRF(t[2],0)]   ) ^ rk[ 8];
-		outBlock[12] = (byte)(X1[ARIA_BRF(t[3],3)]   ) ^ rk[15];
-		outBlock[13] = (byte)(X2[ARIA_BRF(t[3],2)]>>8) ^ rk[14];
-		outBlock[14] = (byte)(S1[ARIA_BRF(t[3],1)]   ) ^ rk[13];
-		outBlock[15] = (byte)(S2[ARIA_BRF(t[3],0)]   ) ^ rk[12];
+		outBlock[ 0] = static_cast<byte>(X1[ARIA_BRF(t[0],3)]   ) ^ rk[ 3] ^ xorBlock[ 0];
+		outBlock[ 1] = static_cast<byte>(X2[ARIA_BRF(t[0],2)]>>8) ^ rk[ 2] ^ xorBlock[ 1];
+		outBlock[ 2] = static_cast<byte>(S1[ARIA_BRF(t[0],1)]   ) ^ rk[ 1] ^ xorBlock[ 2];
+		outBlock[ 3] = static_cast<byte>(S2[ARIA_BRF(t[0],0)]   ) ^ rk[ 0] ^ xorBlock[ 3];
+		outBlock[ 4] = static_cast<byte>(X1[ARIA_BRF(t[1],3)]   ) ^ rk[ 7] ^ xorBlock[ 4];
+		outBlock[ 5] = static_cast<byte>(X2[ARIA_BRF(t[1],2)]>>8) ^ rk[ 6] ^ xorBlock[ 5];
+		outBlock[ 6] = static_cast<byte>(S1[ARIA_BRF(t[1],1)]   ) ^ rk[ 5] ^ xorBlock[ 6];
+		outBlock[ 7] = static_cast<byte>(S2[ARIA_BRF(t[1],0)]   ) ^ rk[ 4] ^ xorBlock[ 7];
+		outBlock[ 8] = static_cast<byte>(X1[ARIA_BRF(t[2],3)]   ) ^ rk[11] ^ xorBlock[ 8];
+		outBlock[ 9] = static_cast<byte>(X2[ARIA_BRF(t[2],2)]>>8) ^ rk[10] ^ xorBlock[ 9];
+		outBlock[10] = static_cast<byte>(S1[ARIA_BRF(t[2],1)]   ) ^ rk[ 9] ^ xorBlock[10];
+		outBlock[11] = static_cast<byte>(S2[ARIA_BRF(t[2],0)]   ) ^ rk[ 8] ^ xorBlock[11];
+		outBlock[12] = static_cast<byte>(X1[ARIA_BRF(t[3],3)]   ) ^ rk[15] ^ xorBlock[12];
+		outBlock[13] = static_cast<byte>(X2[ARIA_BRF(t[3],2)]>>8) ^ rk[14] ^ xorBlock[13];
+		outBlock[14] = static_cast<byte>(S1[ARIA_BRF(t[3],1)]   ) ^ rk[13] ^ xorBlock[14];
+		outBlock[15] = static_cast<byte>(S2[ARIA_BRF(t[3],0)]   ) ^ rk[12] ^ xorBlock[15];
+	}
+	else
+	{
+		outBlock[ 0] = static_cast<byte>(X1[ARIA_BRF(t[0],3)]   ) ^ rk[ 3];
+		outBlock[ 1] = static_cast<byte>(X2[ARIA_BRF(t[0],2)]>>8) ^ rk[ 2];
+		outBlock[ 2] = static_cast<byte>(S1[ARIA_BRF(t[0],1)]   ) ^ rk[ 1];
+		outBlock[ 3] = static_cast<byte>(S2[ARIA_BRF(t[0],0)]   ) ^ rk[ 0];
+		outBlock[ 4] = static_cast<byte>(X1[ARIA_BRF(t[1],3)]   ) ^ rk[ 7];
+		outBlock[ 5] = static_cast<byte>(X2[ARIA_BRF(t[1],2)]>>8) ^ rk[ 6];
+		outBlock[ 6] = static_cast<byte>(S1[ARIA_BRF(t[1],1)]   ) ^ rk[ 5];
+		outBlock[ 7] = static_cast<byte>(S2[ARIA_BRF(t[1],0)]   ) ^ rk[ 4];
+		outBlock[ 8] = static_cast<byte>(X1[ARIA_BRF(t[2],3)]   ) ^ rk[11];
+		outBlock[ 9] = static_cast<byte>(X2[ARIA_BRF(t[2],2)]>>8) ^ rk[10];
+		outBlock[10] = static_cast<byte>(S1[ARIA_BRF(t[2],1)]   ) ^ rk[ 9];
+		outBlock[11] = static_cast<byte>(S2[ARIA_BRF(t[2],0)]   ) ^ rk[ 8];
+		outBlock[12] = static_cast<byte>(X1[ARIA_BRF(t[3],3)]   ) ^ rk[15];
+		outBlock[13] = static_cast<byte>(X2[ARIA_BRF(t[3],2)]>>8) ^ rk[14];
+		outBlock[14] = static_cast<byte>(S1[ARIA_BRF(t[3],1)]   ) ^ rk[13];
+		outBlock[15] = static_cast<byte>(S2[ARIA_BRF(t[3],0)]   ) ^ rk[12];
 	}
 #else
+	if (xorBlock)
 	{
-		outBlock[ 0] = (byte)(X1[ARIA_BRF(t[0],3)]   ) ^ rk[ 0];
-		outBlock[ 1] = (byte)(X2[ARIA_BRF(t[0],2)]>>8) ^ rk[ 1];
-		outBlock[ 2] = (byte)(S1[ARIA_BRF(t[0],1)]   ) ^ rk[ 2];
-		outBlock[ 3] = (byte)(S2[ARIA_BRF(t[0],0)]   ) ^ rk[ 3];
-		outBlock[ 4] = (byte)(X1[ARIA_BRF(t[1],3)]   ) ^ rk[ 4];
-		outBlock[ 5] = (byte)(X2[ARIA_BRF(t[1],2)]>>8) ^ rk[ 5];
-		outBlock[ 6] = (byte)(S1[ARIA_BRF(t[1],1)]   ) ^ rk[ 6];
-		outBlock[ 7] = (byte)(S2[ARIA_BRF(t[1],0)]   ) ^ rk[ 7];
-		outBlock[ 8] = (byte)(X1[ARIA_BRF(t[2],3)]   ) ^ rk[ 8];
-		outBlock[ 9] = (byte)(X2[ARIA_BRF(t[2],2)]>>8) ^ rk[ 9];
-		outBlock[10] = (byte)(S1[ARIA_BRF(t[2],1)]   ) ^ rk[10];
-		outBlock[11] = (byte)(S2[ARIA_BRF(t[2],0)]   ) ^ rk[11];
-		outBlock[12] = (byte)(X1[ARIA_BRF(t[3],3)]   ) ^ rk[12];
-		outBlock[13] = (byte)(X2[ARIA_BRF(t[3],2)]>>8) ^ rk[13];
-		outBlock[14] = (byte)(S1[ARIA_BRF(t[3],1)]   ) ^ rk[14];
-		outBlock[15] = (byte)(S2[ARIA_BRF(t[3],0)]   ) ^ rk[15];
+		outBlock[ 0] = static_cast<byte>(X1[ARIA_BRF(t[0],3)]   ) ^ rk[ 0] ^ xorBlock[ 0];
+		outBlock[ 1] = static_cast<byte>(X2[ARIA_BRF(t[0],2)]>>8) ^ rk[ 1] ^ xorBlock[ 1];
+		outBlock[ 2] = static_cast<byte>(S1[ARIA_BRF(t[0],1)]   ) ^ rk[ 2] ^ xorBlock[ 2];
+		outBlock[ 3] = static_cast<byte>(S2[ARIA_BRF(t[0],0)]   ) ^ rk[ 3] ^ xorBlock[ 3];
+		outBlock[ 4] = static_cast<byte>(X1[ARIA_BRF(t[1],3)]   ) ^ rk[ 4] ^ xorBlock[ 4];
+		outBlock[ 5] = static_cast<byte>(X2[ARIA_BRF(t[1],2)]>>8) ^ rk[ 5] ^ xorBlock[ 5];
+		outBlock[ 6] = static_cast<byte>(S1[ARIA_BRF(t[1],1)]   ) ^ rk[ 6] ^ xorBlock[ 6];
+		outBlock[ 7] = static_cast<byte>(S2[ARIA_BRF(t[1],0)]   ) ^ rk[ 7] ^ xorBlock[ 7];
+		outBlock[ 8] = static_cast<byte>(X1[ARIA_BRF(t[2],3)]   ) ^ rk[ 8] ^ xorBlock[ 8];
+		outBlock[ 9] = static_cast<byte>(X2[ARIA_BRF(t[2],2)]>>8) ^ rk[ 9] ^ xorBlock[ 9];
+		outBlock[10] = static_cast<byte>(S1[ARIA_BRF(t[2],1)]   ) ^ rk[10] ^ xorBlock[10];
+		outBlock[11] = static_cast<byte>(S2[ARIA_BRF(t[2],0)]   ) ^ rk[11] ^ xorBlock[11];
+		outBlock[12] = static_cast<byte>(X1[ARIA_BRF(t[3],3)]   ) ^ rk[12] ^ xorBlock[12];
+		outBlock[13] = static_cast<byte>(X2[ARIA_BRF(t[3],2)]>>8) ^ rk[13] ^ xorBlock[13];
+		outBlock[14] = static_cast<byte>(S1[ARIA_BRF(t[3],1)]   ) ^ rk[14] ^ xorBlock[14];
+		outBlock[15] = static_cast<byte>(S2[ARIA_BRF(t[3],0)]   ) ^ rk[15] ^ xorBlock[15];
+	}
+	else
+	{
+		outBlock[ 0] = static_cast<byte>(X1[ARIA_BRF(t[0],3)]   ) ^ rk[ 0];
+		outBlock[ 1] = static_cast<byte>(X2[ARIA_BRF(t[0],2)]>>8) ^ rk[ 1];
+		outBlock[ 2] = static_cast<byte>(S1[ARIA_BRF(t[0],1)]   ) ^ rk[ 2];
+		outBlock[ 3] = static_cast<byte>(S2[ARIA_BRF(t[0],0)]   ) ^ rk[ 3];
+		outBlock[ 4] = static_cast<byte>(X1[ARIA_BRF(t[1],3)]   ) ^ rk[ 4];
+		outBlock[ 5] = static_cast<byte>(X2[ARIA_BRF(t[1],2)]>>8) ^ rk[ 5];
+		outBlock[ 6] = static_cast<byte>(S1[ARIA_BRF(t[1],1)]   ) ^ rk[ 6];
+		outBlock[ 7] = static_cast<byte>(S2[ARIA_BRF(t[1],0)]   ) ^ rk[ 7];
+		outBlock[ 8] = static_cast<byte>(X1[ARIA_BRF(t[2],3)]   ) ^ rk[ 8];
+		outBlock[ 9] = static_cast<byte>(X2[ARIA_BRF(t[2],2)]>>8) ^ rk[ 9];
+		outBlock[10] = static_cast<byte>(S1[ARIA_BRF(t[2],1)]   ) ^ rk[10];
+		outBlock[11] = static_cast<byte>(S2[ARIA_BRF(t[2],0)]   ) ^ rk[11];
+		outBlock[12] = static_cast<byte>(X1[ARIA_BRF(t[3],3)]   ) ^ rk[12];
+		outBlock[13] = static_cast<byte>(X2[ARIA_BRF(t[3],2)]>>8) ^ rk[13];
+		outBlock[14] = static_cast<byte>(S1[ARIA_BRF(t[3],1)]   ) ^ rk[14];
+		outBlock[15] = static_cast<byte>(S2[ARIA_BRF(t[3],0)]   ) ^ rk[15];
 	}
 #endif  // CRYPTOPP_LITTLE_ENDIAN
-
-	if (xorBlock != NULLPTR)
-		for (unsigned int n=0; n<ARIA::BLOCKSIZE; ++n)
-			outBlock[n] ^= xorBlock[n];
 }
 
 NAMESPACE_END
