@@ -1050,8 +1050,10 @@ bool TestHuffmanCodes()
 
             LowFirstBitReader reader(source);
             unsigned int val;
-            for (unsigned int j=0; !source.AnyRetrievable(); ++j)
+            for (unsigned int j=0; !source.AnyRetrievable(); ++j) {
+                CRYPTOPP_UNUSED(j);
                 decoder.Decode(reader, val);
+            }
         }
         catch (const Exception&) {}
     }

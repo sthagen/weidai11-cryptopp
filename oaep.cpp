@@ -31,9 +31,14 @@ void OAEP_Base::Pad(RandomNumberGenerator &rng, const byte *input, size_t inputL
 
 	member_ptr<HashTransformation> pHash(NewHash());
 	const size_t hLen = pHash->DigestSize();
-	const size_t seedLen = hLen, dbLen = oaepBlockLen-seedLen;
+	const size_t seedLen = hLen;
+	const size_t dbLen = SaturatingSubtract(oaepBlockLen, seedLen);
 	byte *const maskedSeed = oaepBlock;
 	byte *const maskedDB = oaepBlock+seedLen;
+
+	CRYPTOPP_ASSERT(oaepBlockLen >= hLen + inputLength);
+	if (oaepBlockLen < hLen + inputLength)
+		throw InvalidArgument("OAEP_Base::Pad: oaepBlock is too small for digest and input");
 
 	ConstByteArrayParameter encodingParameters;
 	parameters.GetValue(Name::EncodingParameters(), encodingParameters);
@@ -64,7 +69,8 @@ DecodingResult OAEP_Base::Unpad(const byte *oaepBlock, size_t oaepBlockLen, byte
 
 	member_ptr<HashTransformation> pHash(NewHash());
 	const size_t hLen = pHash->DigestSize();
-	const size_t seedLen = hLen, dbLen = oaepBlockLen-seedLen;
+	const size_t seedLen = hLen;
+	const size_t dbLen = SaturatingSubtract(oaepBlockLen, seedLen);
 
 	invalid = (oaepBlockLen < 2*hLen+1) || invalid;
 

@@ -398,12 +398,24 @@ void Inflator::DecodeHeader()
 		{
 		if (!m_reader.FillBuffer(5+5+4))
 			throw UnexpectedEndErr();
-		unsigned int hlit = m_reader.GetBits(5);
-		unsigned int hdist = m_reader.GetBits(5);
-		unsigned int hclen = m_reader.GetBits(4);
+		const unsigned int hlit = m_reader.GetBits(5);
+		const unsigned int hdist = m_reader.GetBits(5);
+		const unsigned int hclen = m_reader.GetBits(4);
 		unsigned int i = 0;
 
-		FixedSizeSecBlock<unsigned int, 286+32> codeLengths;
+		// RFC 1951 allows HLIT values 0 to 29, encoding 257 to 286 literal/length
+		// codes. Values 30 and 31 are invalid and can overrun codeLengths below.
+		CRYPTOPP_ASSERT(hlit <= 29);
+		if (hlit > 29)
+			throw BadBlockErr();
+
+		const unsigned int literalCount = hlit + 257;
+		const unsigned int distanceCount = hdist + 1;
+		const unsigned int codeLengthCount = literalCount + distanceCount;
+
+		// 320 follows zlib allocation; see GH #1368
+		FixedSizeSecBlock<unsigned int, 286+32+2> codeLengths;
+		CRYPTOPP_ASSERT(codeLengthCount <= codeLengths.size());
 		static const unsigned int border[] = {    // Order of the bit length code lengths
 			16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
 		std::fill(codeLengths.begin(), codeLengths+19, 0);
@@ -418,7 +430,7 @@ void Inflator::DecodeHeader()
 			bool result = false;
 			unsigned int k=0, count=0, repeater=0;
 			HuffmanDecoder codeLengthDecoder(codeLengths, 19);
-			for (i=0; i < hlit+257+hdist+1; )
+			for (i=0; i < codeLengthCount; )
 			{
 				k = 0, count = 0, repeater = 0;
 				result = codeLengthDecoder.Decode(m_reader, k);
@@ -452,19 +464,21 @@ void Inflator::DecodeHeader()
 					repeater = 0;
 					break;
 				}
-				if (i + count > hlit+257+hdist+1)
+				if (count > codeLengthCount - i ||
+					i > codeLengths.size() ||
+					count > codeLengths.size() - i)
 					throw BadBlockErr();
 				std::fill(codeLengths + i, codeLengths + i + count, repeater);
 				i += count;
 			}
-			m_dynamicLiteralDecoder.Initialize(codeLengths, hlit+257);
-			if (hdist == 0 && codeLengths[hlit+257] == 0)
+			m_dynamicLiteralDecoder.Initialize(codeLengths, literalCount);
+			if (hdist == 0 && codeLengths[literalCount] == 0)
 			{
 				if (hlit != 0)	// a single zero distance code length means all literals
 					throw BadBlockErr();
 			}
 			else
-				m_dynamicDistanceDecoder.Initialize(codeLengths+hlit+257, hdist+1);
+				m_dynamicDistanceDecoder.Initialize(codeLengths+literalCount, distanceCount);
 			m_nextDecode = LITERAL;
 		}
 		catch (HuffmanDecoder::Err &)

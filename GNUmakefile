@@ -150,7 +150,7 @@ endif
 ###########################################################
 
 # Base CPPFLAGS and CXXFLAGS used if the user did not specify them
-ifeq ($(filter -DDEBUG -DNDEBUG,$(CPPFLAGS)$(CXXFLAGS)),)
+ifeq ($(filter -DDEBUG -DCRYPTOPP_DEBUG -DNDEBUG,$(CPPFLAGS)$(CXXFLAGS)),)
   CRYPTOPP_CPPFLAGS += -DNDEBUG
 endif
 ifeq ($(filter -g%,$(CPPFLAGS)$(CXXFLAGS)),)
